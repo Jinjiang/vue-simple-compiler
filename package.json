@@ -1,0 +1,20 @@
+{
+  "name": "vue-simple-compiler",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Jinjiang",
+  "license": "MIT",
+  "dependencies": {
+    "hash-sum": "^2.0.0",
+    "vue": "^3.2.45"
+  },
+  "devDependencies": {
+    "typescript": "^4.9.4",
+    "vitest": "^0.25.8"
+  }
+}
