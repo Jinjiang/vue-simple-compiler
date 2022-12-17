@@ -2,8 +2,11 @@
   "name": "vue-simple-compiler",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
+    "dev": "vitest",
+    "dev:ui": "vitest --ui",
+    "build": "tsc --project tsconfig.build.json",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
