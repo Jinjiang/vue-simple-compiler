@@ -1,17 +1,35 @@
 {
   "name": "vue-simple-compiler",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
+  "keywords": [
+    "compiler",
+    "vue",
+    "vue.js"
+  ],
+  "author": "Jinjiang <zhaojinjiang@me.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jinjiang/vue-simple-compiler.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Jinjiang/vue-simple-compiler/issues"
+  },
+  "homepage": "https://github.com/Jinjiang/vue-simple-compiler#readme",
   "main": "dist/index.js",
+  "types": "src/index.ts",
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
   "scripts": {
     "dev": "vitest",
     "dev:ui": "vitest --ui",
     "build": "tsc --project tsconfig.build.json",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "Jinjiang",
-  "license": "MIT",
   "dependencies": {
     "hash-sum": "^2.0.0",
     "vue": "^3.2.45"
