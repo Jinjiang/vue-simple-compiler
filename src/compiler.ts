@@ -6,12 +6,12 @@ import {
   rewriteDefault,
   babelParse,
   MagicString,
-} from "vue/compiler-sfc";
+} from 'vue/compiler-sfc';
 // @ts-ignore
-import hashId from "hash-sum";
+import hashId from 'hash-sum';
 
-const ID = "__demo__";
-const FILENAME = "anonymous.vue";
+const ID = '__demo__';
+const FILENAME = 'anonymous.vue';
 
 const COMP_ID = `__sfc__`;
 
@@ -30,24 +30,24 @@ type CompilerOptions = {
 };
 
 const getDestPath = (srcPath: string): string =>
-  srcPath.endsWith(".vue") ? srcPath + ".js" : srcPath.replace(/\.ts/, ".js");
+  srcPath.endsWith('.vue') ? `${srcPath}.js` : srcPath.replace(/\.ts/, '.js');
 
 const resolveImports = (code: string, options?: CompilerOptions): string => {
   const resolver = options?.resolver ?? ((x) => x);
   const s = new MagicString(code);
   const ast = babelParse(code, {
     sourceFilename: options?.filename ?? FILENAME,
-    sourceType: "module",
+    sourceType: 'module',
   }).program.body;
 
-  for (const node of ast) {
-    if (node.type === "ImportDeclaration") {
+  ast.forEach((node) => {
+    if (node.type === 'ImportDeclaration') {
       const srcPath = resolver(node.source.value);
       if (srcPath) {
         const destPath = getDestPath(srcPath);
         if (
-          typeof node.source.start === "number" &&
-          typeof node.source.end === "number"
+          typeof node.source.start === 'number' &&
+          typeof node.source.end === 'number'
         ) {
           s.overwrite(
             node.source.start,
@@ -57,7 +57,7 @@ const resolveImports = (code: string, options?: CompilerOptions): string => {
         }
       }
     }
-  }
+  });
 
   return s.toString();
 };
@@ -90,12 +90,11 @@ export const compile = (
   });
 
   const jsCode = rewriteDefault(scriptResult.content, COMP_ID);
-  const templateCode =
-    templateResult.code.replace(
-      /\nexport (function|const) (render|ssrRender)/,
-      `$1 render`
-    ) + `\n${COMP_ID}.render = render`;
-  const cssCode = styleResult.map((x) => x.code).join("\n");
+  const templateCode = `${templateResult.code.replace(
+    /\nexport (function|const) (render|ssrRender)/,
+    `$1 render`
+  )}\n${COMP_ID}.render = render`;
+  const cssCode = styleResult.map((x) => x.code).join('\n');
   const resolvedJsCode = resolveImports(jsCode, options);
 
   const code = `
