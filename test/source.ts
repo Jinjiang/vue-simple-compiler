@@ -19,6 +19,23 @@ export default {
 </style>
 `;
 
+export const nonCss = `
+<script>
+import { ref } from 'vue'
+export default {
+  setup() {
+		const msg = ref('Hello World!')
+    return { msg }
+  }
+}
+</script>
+
+<template>
+  <h1>{{ msg }}</h1>
+  <input v-model="msg">
+</template>
+`;
+
 export const setup = `
 <script setup>
 import { ref } from 'vue'
@@ -47,7 +64,7 @@ export default {
 </script>
 
 <template>
-  <Foo />
+  1<Foo />2
 </template>
 
 <style>
