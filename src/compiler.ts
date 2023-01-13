@@ -27,6 +27,7 @@ export type FileResolver = (filename: string) => string;
 export type CompilerOptions = {
   filename?: string;
   resolver?: FileResolver;
+  autoImportCss?: boolean;
 };
 
 const getCssPath = (srcPath: string): string => `${srcPath}.css`;
@@ -72,7 +73,7 @@ const resolveImports = (code: string, options?: CompilerOptions, hasCss?: boolea
     }
   });
 
-  if (hasCss) {
+  if (options?.autoImportCss && hasCss) {
     s.prepend(`import '${getCssPath(options?.filename ?? FILENAME)}';`);
   }
 
