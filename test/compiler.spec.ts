@@ -7,4 +7,5 @@ it('works', () => {
   console.log(jsCode);
   console.log(cssCode);
   console.log(destFilename);
+  console.log('a.jsx'.replace(/\.(j|t)sx?$/, '.js'))
 })

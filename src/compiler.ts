@@ -22,17 +22,30 @@ const COMP_ID = `__sfc__`;
 // 3. Sass
 // 4. source map
 
-type FileResolver = (filename: string) => string;
+export type FileResolver = (filename: string) => string;
 
-type CompilerOptions = {
+export type CompilerOptions = {
   filename?: string;
   resolver?: FileResolver;
 };
 
-const getDestPath = (srcPath: string): string =>
-  srcPath.endsWith('.vue') ? `${srcPath}.js` : srcPath.replace(/\.ts/, '.js');
+const getCssPath = (srcPath: string): string => `${srcPath}.css`;
 
-const resolveImports = (code: string, options?: CompilerOptions): string => {
+const getDestPath = (srcPath: string): string =>
+  srcPath.endsWith('.vue') ? `${srcPath}.js` : srcPath.replace(/\.(j|t)sx?$/, '.js');
+
+/**
+ * Resolve all the import statements in the generated code.
+ * 1. `*.js` `*.jsx` `*.ts` `*.tsx` -> `*.js`
+ * 2. `*.vue` -> `*.vue.js`
+ * 3. add `import '${filename}.css'` (like `anonymous.vue.css`) if `hasCSS`.
+ *
+ * @param code the generated code from vue/compiler-sfc
+ * @param options the compiler options
+ * @param hasCss whether the component has css code
+ * @returns the resolved code
+ */
+const resolveImports = (code: string, options?: CompilerOptions, hasCss?: boolean): string => {
   const resolver = options?.resolver ?? ((x) => x);
   const s = new MagicString(code);
   const ast = babelParse(code, {
@@ -58,6 +71,10 @@ const resolveImports = (code: string, options?: CompilerOptions): string => {
       }
     }
   });
+
+  if (hasCss) {
+    s.prepend(`import '${getCssPath(options?.filename ?? FILENAME)}';`);
+  }
 
   return s.toString();
 };
@@ -95,7 +112,7 @@ export const compile = (
     `$1 render`
   )}\n${COMP_ID}.render = render`;
   const cssCode = styleResult.map((x) => x.code).join('\n');
-  const resolvedJsCode = resolveImports(jsCode, options);
+  const resolvedJsCode = resolveImports(jsCode, options, cssCode.trim().length > 0);
 
   const code = `
 ${resolvedJsCode}
