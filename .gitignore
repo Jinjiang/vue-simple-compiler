@@ -104,3 +104,9 @@ dist
 .tern-port
 
 test/dist
+
+TODO
+TODO.md
+
+output*.txt
+error*.txt
