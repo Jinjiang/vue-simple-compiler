@@ -18,6 +18,18 @@ pnpm install vue-simple-compiler
 const [jsCode, cssCode, destFilename] = compile(source, { filename });
 ```
 
+options
+
+- `filename`: By default it's `anonymous.vue`.
+- `resolver`: A function to resolve the real filepath (e.g. add `.js` extension name automatically like `./foo` to `./foo.js`). By default it's `(x) => x`.
+- `autoImportCss`: A boolean value to determine whether to necessarily prepend `import "./xxx.css"` into the generated JavaScript code. By default it's `false`.
+
+output
+
+- `jsCode`: Generated JavaScript code.
+- `cssCode`: Generated CSS code. If there is no CSS in the source, then it would be an empty string.
+- `destFilename`: The file name of the generated JavaScript file. Usually, it's like `xxx.vue.js`.
+
 ## Example
 
 - `foo.vue`
