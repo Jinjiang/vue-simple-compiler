@@ -30,6 +30,7 @@ export type CompilerOptions = {
   autoImportCss?: boolean;
 };
 
+// TODO: customizable
 const getCssPath = (srcPath: string): string => `${srcPath}.css`;
 
 const getDestPath = (srcPath: string): string =>
@@ -74,7 +75,7 @@ const resolveImports = (code: string, options?: CompilerOptions, hasCss?: boolea
   });
 
   if (options?.autoImportCss && hasCss) {
-    s.prepend(`import '${getCssPath(options?.filename ?? FILENAME)}';`);
+    s.prepend(`import './${getCssPath(options?.filename ?? FILENAME)}';`);
   }
 
   return s.toString();
