@@ -71,3 +71,25 @@ export default {
   h2 { color: blue }
 </style>
 `;
+
+export const scoped = `
+<script>
+import { ref } from 'vue'
+export default {
+  setup() {
+		const msg = ref('Hello World!')
+    return { msg }
+  }
+}
+</script>
+
+<template>
+  <h1 class="title">{{ msg }}</h1>
+  <input v-model="msg">
+</template>
+
+<style scoped>
+  .title { color: red }
+</style>
+`;
+
