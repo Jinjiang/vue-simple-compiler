@@ -48,8 +48,7 @@ const getDestPath = (srcPath: string): string =>
  * @returns the resolved code
  */
 const resolveImports = (code: string, options?: CompilerOptions, cssState?: {
-  hasCss: boolean;
-  hasScopedCss: boolean;
+  hasCss?: boolean;
 }): string => {
   const resolver = options?.resolver ?? ((x) => x);
   const s = new MagicString(code);
@@ -80,9 +79,6 @@ const resolveImports = (code: string, options?: CompilerOptions, cssState?: {
   if (options?.autoImportCss && cssState?.hasCss) {
     s.prepend(`import './${getCssPath(options?.filename ?? FILENAME)}';`);
   }
-  if (options?.autoImportCss && cssState?.hasScopedCss) {
-    s.prepend(`import './${getCssPath(options?.filename ?? FILENAME, true)}';`);
-  }
 
   return s.toString();
 };
@@ -95,7 +91,6 @@ export type CompileResultFile = {
 export type CompileResult = {
   js: CompileResultFile;
   css?: CompileResultFile;
-  scopedCss?: CompileResultFile;
 };
 
 /**
@@ -157,7 +152,6 @@ export const compile = (
 
   // handle <style>
   const cssCodeList: string[] = []
-  const scopedCssCodeList: string[] = []
   descriptor.styles.forEach((style) => {
     const styleResult = compileStyle({
       id,
@@ -165,20 +159,12 @@ export const compile = (
       source: style.content,
       scoped: style.scoped,
     });
-    if (style.scoped) {
-      scopedCssCodeList.push(styleResult.code)
-    } else {
-      cssCodeList.push(styleResult.code)
-    }
+    cssCodeList.push(styleResult.code)
   });
   const cssCode = cssCodeList.join('\n')
-  const scopedCssCode = scopedCssCodeList.join('\n')
 
   // resolve imports
-  const resolvedJsCode = resolveImports(jsCode, options, {
-    hasCss: cssCode.trim().length > 0,
-    hasScopedCss: scopedCssCode.trim().length > 0,
-  });
+  const resolvedJsCode = resolveImports(jsCode, options, { hasCss: cssCode.trim().length > 0 });
 
   // assemble the final code
   const code = `
@@ -198,12 +184,6 @@ export default ${COMP_ID}
     result.css = {
       filename: getCssPath(filename),
       content: cssCode,
-    }
-  }
-  if (scopedCssCode.trim().length > 0) {
-    result.scopedCss = {
-      filename: getCssPath(filename, true),
-      content: scopedCssCode,
     }
   }
 

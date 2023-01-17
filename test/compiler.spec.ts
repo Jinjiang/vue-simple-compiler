@@ -9,6 +9,8 @@ import { defineComponent } from 'vue';
 // TODO:
 // features
 // - options: custom resolver
+// - multiple style blocks
+// - multiple script blocks
 // complexity
 // - import vue files without extension name
 // - import js/css files with the same name
@@ -16,7 +18,7 @@ import { defineComponent } from 'vue';
 it('works', async () => {
   const { js: { filename: destFilename, content: jsCode }, css } = compile(mvp);
   expect(destFilename).toBe('anonymous.vue.js')
-  expect(css?.filename).toBeTruthy()
+  expect(css?.filename).toBe('anonymous.vue.css')
   expect(css?.content).toBeTruthy()
   if (existsSync('./test/dist/mvp')) {
     rmSync('./test/dist/mvp', { recursive: true })
@@ -48,6 +50,7 @@ it('works without <style>', async () => {
 it('works with custom filename', async () => {
   const { js: { filename: destFilename, content: jsCode }, css } = compile(mvp, { filename: 'custom.vue' });
   expect(destFilename).toBe('custom.vue.js')
+  expect(css?.filename).toBe('custom.vue.css')
   expect(css?.content).toBeTruthy()
   if (existsSync('./test/dist/custom-filename')) {
     rmSync('./test/dist/custom-filename', { recursive: true })
@@ -116,16 +119,16 @@ it('works with auto-import css without <style>', async() => {
 })
 
 it('works with scoped CSS', async () => {
-  const { js: { filename: destFilename, content: jsCode }, css, scopedCss } = compile(scoped, { filename: 'scoped.vue' });
+  const { js: { filename: destFilename, content: jsCode }, css } = compile(scoped, { filename: 'scoped.vue' });
   expect(destFilename).toBe('scoped.vue.js')
-  expect(css).toBeFalsy()
-  expect(scopedCss?.content).toBeTruthy()
+  expect(css?.content).toBeTruthy()
+  expect(css?.filename).toBe('scoped.vue.css')
   if (existsSync('./test/dist/scoped')) {
     rmSync('./test/dist/scoped', { recursive: true })
   }
   ensureDirSync('./test/dist/scoped')
   writeFileSync(`./test/dist/scoped/${destFilename}`, jsCode)
-  writeFileSync(`./test/dist/scoped/${scopedCss!.filename}`, scopedCss!.content)
+  writeFileSync(`./test/dist/scoped/${css!.filename}`, css!.content)
   const modulePath = `./dist/scoped/${destFilename}`
   const HelloWorld = (await import(modulePath)).default
   const wrapper = await mount(defineComponent(HelloWorld))
@@ -137,4 +140,5 @@ it('works with scoped CSS', async () => {
   expect(wrapper.element.children[1].tagName).equal('INPUT')
   expect(wrapper.element.children[1].attributes.item(0)!.name)
     .equal(wrapper.element.children[0].attributes.item(1)!.name)
+  expect(css!.content).has.string(wrapper.element.children[0].attributes.item(1)!.name)
 })
