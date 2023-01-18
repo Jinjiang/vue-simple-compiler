@@ -95,9 +95,11 @@ const resolveImports = (
     }
   });
 
-  cssImportList.forEach((cssImport) => {
-    s.prepend(cssImport);
-  });
+  if (options?.autoImportCss) {
+    cssImportList.forEach((cssImport) => {
+      s.prepend(cssImport);
+    });
+  }
 
   return s.toString();
 };
@@ -176,13 +178,20 @@ export const compile = (
   const mainCssCodeList: string[] = [];
   descriptor.styles.forEach((style, index) => {
     if (style.src) {
+      // TODO: support <style src>
       console.log("Sorry, we don't support <style src> yet.");
     } else if (style.lang) {
+      // TODO: support <style lang>
       console.log("Sorry, we don't support <style lang> yet.");
     } else if (style.module) {
       const styleVar = `style${index}`;
       const destFilename = getCssPath(filename, index);
-      cssImportList.push(genCssImport(destFilename, styleVar));
+      // TODO: generate JSON file or object for CSS modules
+      if (options?.autoImportCss) {
+        cssImportList.push(genCssImport(destFilename, styleVar));
+      } else {
+        addedCode.push(`const ${styleVar} = {}`)
+      }
 
       const name = typeof style.module === "string" ? style.module : "$style";
       addedCode.push(`cssModules["${name}"] = ${styleVar}`);

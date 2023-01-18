@@ -200,7 +200,7 @@ it("works with CSS Modules", async () => {
   const {
     js: { filename: destFilename, content: jsCode },
     css,
-  } = compile(cssModules, { filename: "css.modules.vue" });
+  } = compile(cssModules, { filename: "css.modules.vue", autoImportCss: true });
   expect(destFilename).toBe("css.modules.vue.js");
   expect(css.length).toBe(1);
   expect(css[0].content).toBeTruthy();
@@ -213,7 +213,9 @@ it("works with CSS Modules", async () => {
   writeFileSync(`./test/dist/css-modules/${css[0].filename}`, css[0].content);
   const modulePath = `./dist/css-modules/${destFilename}`;
   const HelloWorld = (await import(modulePath)).default;
+  expect(HelloWorld).has.property("__cssModules");
   const wrapper = await mount(defineComponent(HelloWorld));
   expect(wrapper.element.childElementCount).equal(2);
-  console.log(wrapper.html())
+  // console.log(wrapper.html())
+  // TODO: test without auto-import-css
 });
