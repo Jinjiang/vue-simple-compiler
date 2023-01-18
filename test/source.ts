@@ -93,3 +93,33 @@ export default {
 </style>
 `;
 
+export const cssModules = `
+<script>
+export default {
+  data() {
+    return {
+      isRed: true
+    }
+  }
+}
+</script>
+
+<template>
+  <p :class="{ [$style.red]: isRed }">
+    Am I red?
+  </p>
+  <p :class="[$style.red, $style.bold]">
+    Red and bold
+  </p>
+</template>
+
+<style module>
+.red {
+  color: red;
+}
+.bold {
+  font-weight: bold;
+}
+</style>
+`;
+

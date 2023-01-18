@@ -148,6 +148,7 @@ export const compile = (
   }
   if (features.hasCSSModules) {
     addedProps.push(["__cssModules", `cssModules`]);
+    addedCode.push("const cssModules= {}");
   }
 
   // handle <script>
@@ -222,6 +223,7 @@ export const compile = (
   const code = `
 ${resolvedJsCode}
 ${templateCode}
+${addedCode.join("\n")}
 ${addedProps.map(([key, value]) => `${COMP_ID}.${key} = ${value}`).join("\n")}
 export default ${COMP_ID}
   `.trim();
