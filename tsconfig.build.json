@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "outDir": "dist",
     "target": "esnext",
