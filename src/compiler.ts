@@ -6,12 +6,12 @@ import {
   rewriteDefault,
   babelParse,
   MagicString,
-} from 'vue/compiler-sfc';
+} from "vue/compiler-sfc";
 // @ts-ignore
-import hashId from 'hash-sum';
+import hashId from "hash-sum";
 
-const ID = '__demo__';
-const FILENAME = 'anonymous.vue';
+const ID = "__demo__";
+const FILENAME = "anonymous.vue";
 
 const COMP_ID = `__sfc__`;
 
@@ -31,40 +31,59 @@ type SFCFeatures = {
   hasTemplate?: boolean;
 };
 
-const getCssPath = (srcPath: string, isSsoped?: boolean): string => `${srcPath}${isSsoped ? '.scoped' : ''}.css`;
+// - plain css -> filename.vue.css
+// - scoped css -> filename.vue.css
+// - modules -> filename.vue.${index}.module.css
+// TODO:
+// - style[src=foo.css] -> foo.css
+// - style[src=foo.sass] -> foo.sass.css
+// - style[src=foo.css][scoped] -> foo.scoped.css
+// - style[src=foo.css][module] -> foo.module.css
+// - style[src=foo.sass][module] -> foo.sass.module.css
+const getCssPath = (srcPath: string, index?: number): string =>
+  `${srcPath}${typeof index === 'number' ? `.${index}.module` : ""}.css`;
 
 const getDestPath = (srcPath: string): string =>
-  srcPath.endsWith('.vue') ? `${srcPath}.js` : srcPath.replace(/\.(j|t)sx?$/, '.js');
+  srcPath.endsWith(".vue")
+    ? `${srcPath}.js`
+    : srcPath.replace(/\.(j|t)sx?$/, ".js");
+
+const genCssImport = (cssPath: string, styleVar?: string): string =>
+  styleVar
+    ? `import ${styleVar} from './${cssPath}';`
+    : `import './${cssPath}';`;
 
 /**
  * Resolve all the import statements in the generated code.
  * 1. `*.js` `*.jsx` `*.ts` `*.tsx` -> `*.js`
  * 2. `*.vue` -> `*.vue.js`
- * 3. add `import '${filename}.css'` (like `anonymous.vue.css`) if `hasCSS`.
+ * 3. prepend all the CSS imports
  *
  * @param code the generated code from vue/compiler-sfc
+ * @param cssImportList an array of css import strings to prepend
  * @param options the compiler options
- * @param hasCss whether the component has css code
  * @returns the resolved code
  */
-const resolveImports = (code: string, options?: CompilerOptions, cssState?: {
-  hasCss?: boolean;
-}): string => {
+const resolveImports = (
+  code: string,
+  cssImportList: string[],
+  options?: CompilerOptions
+): string => {
   const resolver = options?.resolver ?? ((x) => x);
   const s = new MagicString(code);
   const ast = babelParse(code, {
     sourceFilename: options?.filename ?? FILENAME,
-    sourceType: 'module',
+    sourceType: "module",
   }).program.body;
 
   ast.forEach((node) => {
-    if (node.type === 'ImportDeclaration') {
+    if (node.type === "ImportDeclaration") {
       const srcPath = resolver(node.source.value);
       if (srcPath) {
         const destPath = getDestPath(srcPath);
         if (
-          typeof node.source.start === 'number' &&
-          typeof node.source.end === 'number'
+          typeof node.source.start === "number" &&
+          typeof node.source.end === "number"
         ) {
           s.overwrite(
             node.source.start,
@@ -76,9 +95,9 @@ const resolveImports = (code: string, options?: CompilerOptions, cssState?: {
     }
   });
 
-  if (options?.autoImportCss && cssState?.hasCss) {
-    s.prepend(`import './${getCssPath(options?.filename ?? FILENAME)}';`);
-  }
+  cssImportList.forEach((cssImport) => {
+    s.prepend(cssImport);
+  });
 
   return s.toString();
 };
@@ -86,11 +105,11 @@ const resolveImports = (code: string, options?: CompilerOptions, cssState?: {
 export type CompileResultFile = {
   filename: string;
   content: string;
-}
+};
 
 export type CompileResult = {
   js: CompileResultFile;
-  css?: CompileResultFile;
+  css: CompileResultFile[];
 };
 
 /**
@@ -122,13 +141,13 @@ export const compile = (
     return features.hasScoped && features.hasCSSModules && features.hasStyle;
   });
   const addedProps: Array<[key: string, value: string]> = [];
-  addedProps.push(['__file', JSON.stringify(filename)])
+  const addedCode: string[] = [];
+  addedProps.push(["__file", JSON.stringify(filename)]);
   if (features.hasScoped) {
-    addedProps.push(['__scopeId', JSON.stringify(`data-v-${id}`)])
+    addedProps.push(["__scopeId", JSON.stringify(`data-v-${id}`)]);
   }
-  // TODO: css modules
   if (features.hasCSSModules) {
-    addedProps.push(['__cssModules', `cssModules`])
+    addedProps.push(["__cssModules", `cssModules`]);
   }
 
   // handle <script>
@@ -151,26 +170,59 @@ export const compile = (
   )}\n${COMP_ID}.render = render`;
 
   // handle <style>
-  const cssCodeList: string[] = []
-  descriptor.styles.forEach((style) => {
-    const styleResult = compileStyle({
-      id,
-      filename,
-      source: style.content,
-      scoped: style.scoped,
-    });
-    cssCodeList.push(styleResult.code)
+  const cssImportList: string[] = [];
+  const cssFileList: CompileResultFile[] = [];
+  const mainCssCodeList: string[] = [];
+  descriptor.styles.forEach((style, index) => {
+    if (style.src) {
+      console.log("Sorry, we don't support <style src> yet.");
+    } else if (style.lang) {
+      console.log("Sorry, we don't support <style lang> yet.");
+    } else if (style.module) {
+      const styleVar = `style${index}`;
+      const destFilename = getCssPath(filename, index);
+      cssImportList.push(genCssImport(destFilename, styleVar));
+
+      const name = typeof style.module === "string" ? style.module : "$style";
+      addedCode.push(`cssModules["${name}"] = ${styleVar}`);
+
+      const styleResult = compileStyle({
+        id,
+        filename,
+        source: style.content,
+        scoped: style.scoped,
+      });
+      cssFileList.push({
+        filename: destFilename,
+        content: styleResult.code,
+      });
+    } else {
+      const styleResult = compileStyle({
+        id,
+        filename,
+        source: style.content,
+        scoped: style.scoped,
+      });
+      mainCssCodeList.push(styleResult.code);
+    }
   });
-  const cssCode = cssCodeList.join('\n')
+  if (mainCssCodeList.length > 0) {
+    const destFilename = getCssPath(filename)
+    cssImportList.unshift(genCssImport(destFilename))
+    cssFileList.unshift({
+      filename: destFilename,
+      content: mainCssCodeList.join("\n"),
+    });
+  }
 
   // resolve imports
-  const resolvedJsCode = resolveImports(jsCode, options, { hasCss: cssCode.trim().length > 0 });
+  const resolvedJsCode = resolveImports(jsCode, cssImportList, options);
 
   // assemble the final code
   const code = `
 ${resolvedJsCode}
 ${templateCode}
-${addedProps.map(([key, value]) => `${COMP_ID}.${key} = ${value}`).join('\n')}
+${addedProps.map(([key, value]) => `${COMP_ID}.${key} = ${value}`).join("\n")}
 export default ${COMP_ID}
   `.trim();
 
@@ -178,14 +230,9 @@ export default ${COMP_ID}
     js: {
       filename: destFilename,
       content: code,
-    }
-  }
-  if (cssCode.trim().length > 0) {
-    result.css = {
-      filename: getCssPath(filename),
-      content: cssCode,
-    }
-  }
+    },
+    css: cssFileList
+  };
 
-  return result
+  return result;
 };
