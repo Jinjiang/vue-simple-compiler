@@ -1,11 +1,11 @@
 import { join } from 'path'
 import { ensureDirSync, writeFileSync, rmSync, existsSync } from "fs-extra";
 import { beforeEach, expect, it } from "vitest";
+import { defineComponent } from "vue";
 import { render } from '@testing-library/vue'
 
 import { compile } from "../src/compiler";
-import { mvp, imports, nonCss, scoped, cssModules, setup } from "./source";
-import { defineComponent } from "vue";
+import { mvp, imports, nonCss, scoped, cssModules, setup, ts } from "./fixtures";
 
 // TODO:
 // features
@@ -110,6 +110,25 @@ it('works with <script setup>', async () => {
   const result = render(defineComponent(HelloWorld))
   expect(result.html().trim().replace(/\n/g, '')).toBe('<h1>Hello World!</h1><input>')
 });
+
+it('works with typescript', async () => {
+  const {
+    js: { filename: destFilename, content: jsCode },
+    css,
+  } = compile(ts, { filename: "ts.vue" });
+  expect(destFilename).toBe('ts.vue.js')
+  expect(css.length).toBe(0);
+  const dir = join(testDistDir, 'ts')
+  const modulePath = join(dir, destFilename)
+  if (existsSync(dir)) {
+    rmSync(dir, { recursive: true })
+  }
+  ensureDirSync(dir)
+  writeFileSync(modulePath, jsCode)
+  const HelloWorld = (await import(modulePath)).default
+  const result = render(defineComponent(HelloWorld))
+  expect(result.html().trim().replace(/\n/g, '')).toBe('<h1>Hello from Component A!</h1>')
+})
 
 it("works with importing other vue files", async () => {
   const {

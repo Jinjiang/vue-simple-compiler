@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "hash-sum": "^2.0.0",
+    "sucrase": "^3.29.0",
     "vue": "^3.2.45"
   },
   "devDependencies": {

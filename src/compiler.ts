@@ -7,7 +7,9 @@ import {
   babelParse,
   MagicString,
   BindingMetadata,
+  CompilerOptions as SFCCompilerOptions,
 } from "vue/compiler-sfc";
+import { transform } from 'sucrase'
 // @ts-ignore
 import hashId from "hash-sum";
 
@@ -15,6 +17,12 @@ const ID = "__demo__";
 const FILENAME = "anonymous.vue";
 
 const COMP_ID = `__sfc__`;
+
+const transformTS = (src: string): string => {
+  return transform(src, {
+    transforms: ['typescript']
+  }).code
+}
 
 export type FileResolver = (filename: string) => string;
 
@@ -30,6 +38,7 @@ type SFCFeatures = {
   hasCSSModules?: boolean;
   hasScriptSetup?: boolean;
   hasTemplate?: boolean;
+  hasTS?: boolean;
 };
 
 // - plain css -> filename.vue.css
@@ -133,6 +142,14 @@ export const compile = (
   // get the code structure
   const { descriptor } = parse(source);
   const features: SFCFeatures = {};
+  const addedProps: Array<[key: string, value: string]> = [];
+  const addedCode: string[] = [];
+
+  // get the features
+  const scriptLang =
+    (descriptor.script && descriptor.script.lang) ||
+    (descriptor.scriptSetup && descriptor.scriptSetup.lang)
+  features.hasTS = scriptLang === 'ts'
   descriptor.styles.some((style) => {
     if (style.scoped) {
       features.hasScoped = true;
@@ -143,8 +160,6 @@ export const compile = (
     features.hasStyle = true;
     return features.hasScoped && features.hasCSSModules && features.hasStyle;
   });
-  const addedProps: Array<[key: string, value: string]> = [];
-  const addedCode: string[] = [];
   addedProps.push(["__file", JSON.stringify(filename)]);
   if (features.hasScoped) {
     addedProps.push(["__scopeId", JSON.stringify(`data-v-${id}`)]);
@@ -158,9 +173,28 @@ export const compile = (
   let jsCode = ''
   let jsBindings: BindingMetadata | undefined;
   if (descriptor.script || descriptor.scriptSetup) {
-    const scriptResult = compileScript(descriptor, { id, inlineTemplate: true });
-    jsCode = rewriteDefault(scriptResult.content, COMP_ID);
-    jsBindings = scriptResult.bindings;
+    if (scriptLang && scriptLang !== 'js' && scriptLang !== 'ts') {
+      // TODO: support <style lang>
+      throw new Error(`Unsupported script lang: ${scriptLang}`);
+    } else {
+      const expressionPlugins: SFCCompilerOptions['expressionPlugins'] = features.hasTS
+        ? ['typescript']
+        : undefined
+      const scriptResult = compileScript( descriptor, {
+        id,
+        inlineTemplate: true,
+        templateOptions: {
+          compilerOptions: {
+            expressionPlugins,
+          }
+        }
+      });
+      const jsContent = features.hasTS
+        ? transformTS(scriptResult.content)
+        : scriptResult.content;
+      jsCode = rewriteDefault(jsContent, COMP_ID, expressionPlugins);
+      jsBindings = scriptResult.bindings;
+    }
   } else {
     jsCode = `const ${COMP_ID} = {}`;
   }
@@ -190,10 +224,10 @@ export const compile = (
   descriptor.styles.forEach((style, index) => {
     if (style.src) {
       // TODO: support <style src>
-      console.log("Sorry, we don't support <style src> yet.");
+      throw new Error(`Unsupported imported style: ${style.src}.`);
     } else if (style.lang) {
       // TODO: support <style lang>
-      console.log("Sorry, we don't support <style lang> yet.");
+      throw new Error(`Unsupported style lang: ${style.lang}.`);
     } else if (style.module) {
       const styleVar = `style${index}`;
       const destFilename = getCssPath(filename, index);

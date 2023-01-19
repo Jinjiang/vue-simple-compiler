@@ -53,6 +53,27 @@ const msg = ref('Hello World!')
 </style>
 `;
 
+export const ts = `
+<script lang="ts">
+export default {
+  data() {
+    return {
+      msg: 'Hello from Component A!',
+    }
+  },
+  methods: {
+    someMethod(arg: string): string {
+      return 'hello ' + arg
+    },
+  },
+}
+</script>
+
+<template>
+  <h1>{{ msg }}</h1>
+</template>
+`
+
 export const imports = `
 <script>
 import Foo from './foo.vue'
