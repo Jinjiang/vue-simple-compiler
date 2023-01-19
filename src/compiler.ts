@@ -6,6 +6,7 @@ import {
   rewriteDefault,
   babelParse,
   MagicString,
+  BindingMetadata,
 } from "vue/compiler-sfc";
 // @ts-ignore
 import hashId from "hash-sum";
@@ -154,23 +155,33 @@ export const compile = (
   }
 
   // handle <script>
-  const scriptResult = compileScript(descriptor, { id });
-  const jsCode = rewriteDefault(scriptResult.content, COMP_ID);
+  let jsCode = ''
+  let jsBindings: BindingMetadata | undefined;
+  if (descriptor.script || descriptor.scriptSetup) {
+    const scriptResult = compileScript(descriptor, { id, inlineTemplate: true });
+    jsCode = rewriteDefault(scriptResult.content, COMP_ID);
+    jsBindings = scriptResult.bindings;
+  } else {
+    jsCode = `const ${COMP_ID} = {}`;
+  }
 
   // handle <template>
-  const templateResult = compileTemplate({
-    id: `data-v-${id}`,
-    filename,
-    source: descriptor.template!.content,
-    scoped: features.hasScoped,
-    compilerOptions: {
-      bindingMetadata: scriptResult.bindings,
-    },
-  });
-  const templateCode = `${templateResult.code.replace(
-    /\nexport (function|const) (render|ssrRender)/,
-    `$1 render`
-  )}\n${COMP_ID}.render = render`;
+  let templateCode = ''
+  if (descriptor.template && !descriptor.scriptSetup) {
+    const templateResult = compileTemplate({
+      id: `data-v-${id}`,
+      filename,
+      source: descriptor.template!.content,
+      scoped: features.hasScoped,
+      compilerOptions: {
+        bindingMetadata: jsBindings,
+      },
+    });
+    templateCode = `${templateResult.code.replace(
+      /\nexport (function|const) (render|ssrRender)/,
+      `$1 render`
+    )}\n${COMP_ID}.render = render`;
+  }
 
   // handle <style>
   const cssImportList: string[] = [];
