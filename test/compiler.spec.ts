@@ -233,15 +233,15 @@ it("works with scoped CSS", async () => {
   expect(rootElement.children[0].tagName).toEqual("H1");
   expect(rootElement.children[0].className).toEqual("title");
   expect(rootElement.children[0].textContent).toEqual("Hello World!");
-  expect(rootElement.children[0].attributes.item(1)!.name).toMatch(
+  expect(rootElement.children[0].attributes.item(0)!.name).toMatch(
     /^data\-v\-/
   );
   expect(rootElement.children[1].tagName).toEqual("INPUT");
   expect(rootElement.children[1].attributes.item(0)!.name).toEqual(
-    rootElement.children[0].attributes.item(1)!.name
+    rootElement.children[0].attributes.item(0)!.name
   );
   expect(css[0].content).toMatch(
-    rootElement.children[0].attributes.item(1)!.name
+    rootElement.children[0].attributes.item(0)!.name
   );
 });
 

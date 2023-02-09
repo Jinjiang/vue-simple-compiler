@@ -31,17 +31,19 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@vue/compiler-sfc": "^3.2.47",
     "hash-sum": "^2.0.0",
+    "sass-embedded": "^1.57.1",
     "sucrase": "^3.29.0",
-    "vue": "^3.2.45"
+    "vue": "^3.2.47"
   },
   "devDependencies": {
     "@testing-library/vue": "^6.6.1",
     "@types/fs-extra": "^11.0.1",
-    "@vitest/ui": "^0.27.1",
+    "@vitest/ui": "^0.27.3",
     "fs-extra": "^11.1.0",
-    "jsdom": "^21.0.0",
-    "typescript": "^4.9.4",
+    "jsdom": "^21.1.0",
+    "typescript": "^4.9.5",
     "vitest": "^0.25.8"
   }
 }
