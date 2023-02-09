@@ -144,3 +144,39 @@ export default {
 </style>
 `;
 
+export const sass = `
+<template>
+  <nav>
+    <ul>
+      <li><a href="#">Home</a></li>
+      <li><a href="#">About</a></li>
+      <li><a href="#">Contact</a></li>
+    </ul>
+  </nav>
+</template>
+
+<style lang="sass">
+$font-stack: Helvetica, sans-serif;
+$primary-color: #333;
+
+nav {
+  font: 100% $font-stack;
+  background: $primary-color;
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li { display: inline-block; }
+
+  a {
+    display: block;
+    padding: 6px 12px;
+    text-decoration: none;
+  }
+}
+</style>
+`;
+

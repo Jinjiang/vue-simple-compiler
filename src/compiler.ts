@@ -9,7 +9,8 @@ import {
   BindingMetadata,
   CompilerOptions as SFCCompilerOptions,
 } from "vue/compiler-sfc";
-import { transform } from 'sucrase'
+import * as typescript from 'sucrase'
+import * as sass from 'sass-embedded';
 // @ts-ignore
 import hashId from "hash-sum";
 
@@ -19,7 +20,7 @@ const FILENAME = "anonymous.vue";
 const COMP_ID = `__sfc__`;
 
 const transformTS = (src: string): string => {
-  return transform(src, {
+  return typescript.transform(src, {
     transforms: ['typescript']
   }).code
 }
@@ -178,7 +179,7 @@ export const compile = (
   let jsBindings: BindingMetadata | undefined;
   if (descriptor.script || descriptor.scriptSetup) {
     if (scriptLang && scriptLang !== 'js' && scriptLang !== 'ts') {
-      // TODO: support <style lang>
+      // TODO: support <script lang>
       throw new Error(`Unsupported script lang: ${scriptLang}`);
     } else {
       const expressionPlugins: SFCCompilerOptions['expressionPlugins'] = features.hasTS
@@ -226,11 +227,14 @@ export const compile = (
   const cssFileList: CompileResultFile[] = [];
   const mainCssCodeList: string[] = [];
   descriptor.styles.forEach((style, index) => {
+    const cssCode =
+      (style.lang === 'scss' || style.lang === 'sass')
+        ? sass.compileString(style.content).css
+        : style.content;
     if (style.src) {
       // TODO: support <style src>
       throw new Error(`Unsupported imported style: ${style.src}.`);
-    } else if (style.lang) {
-      // TODO: support <style lang>
+    } else if (style.lang && style.lang !== 'scss' && style.lang !== 'sass') {
       throw new Error(`Unsupported style lang: ${style.lang}.`);
     } else if (style.module) {
       const styleVar = `style${index}`;
@@ -248,7 +252,7 @@ export const compile = (
       const styleResult = compileStyle({
         id,
         filename,
-        source: style.content,
+        source: cssCode,
         scoped: style.scoped,
       });
       cssFileList.push({
@@ -259,7 +263,7 @@ export const compile = (
       const styleResult = compileStyle({
         id,
         filename,
-        source: style.content,
+        source: cssCode,
         scoped: style.scoped,
       });
       mainCssCodeList.push(styleResult.code);

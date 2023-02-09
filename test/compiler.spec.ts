@@ -5,7 +5,7 @@ import { defineComponent } from "vue";
 import { render } from '@testing-library/vue'
 
 import { compile } from "../src/compiler";
-import { mvp, imports, nonCss, scoped, cssModules, setup, ts } from "./fixtures";
+import * as fixtures from "./fixtures";
 
 // TODO:
 // features
@@ -26,7 +26,7 @@ it('works', async () => {
   const {
     js: { filename: destFilename, content: jsCode },
     css,
-  } = compile(mvp);
+  } = compile(fixtures.mvp);
   expect(destFilename).toBe('anonymous.vue.js')
   expect(css.length).toBe(1);
   expect(css[0].filename).toBe("anonymous.vue.css");
@@ -48,7 +48,7 @@ it("works without <style>", async () => {
   const {
     js: { filename: destFilename, content: jsCode },
     css,
-  } = compile(nonCss);
+  } = compile(fixtures.nonCss);
   expect(destFilename).toBe("anonymous.vue.js");
   expect(css.length).toBe(0);
   const dir = join(testDistDir, 'non-css')
@@ -69,7 +69,7 @@ it("works with custom filename", async () => {
   const {
     js: { filename: destFilename, content: jsCode },
     css,
-  } = compile(mvp, { filename: "custom.vue" });
+  } = compile(fixtures.mvp, { filename: "custom.vue" });
   expect(destFilename).toBe("custom.vue.js");
   expect(css.length).toBe(1);
   expect(css[0].filename).toBe("custom.vue.css");
@@ -93,7 +93,7 @@ it('works with <script setup>', async () => {
   const {
     js: { filename: destFilename, content: jsCode },
     css,
-  } = compile(setup, { filename: "setup.vue" });
+  } = compile(fixtures.setup, { filename: "setup.vue" });
   expect(destFilename).toBe('setup.vue.js')
   expect(css.length).toBe(1);
   expect(css[0].filename).toBe("setup.vue.css");
@@ -115,7 +115,7 @@ it('works with typescript', async () => {
   const {
     js: { filename: destFilename, content: jsCode },
     css,
-  } = compile(ts, { filename: "ts.vue" });
+  } = compile(fixtures.ts, { filename: "ts.vue" });
   expect(destFilename).toBe('ts.vue.js')
   expect(css.length).toBe(0);
   const dir = join(testDistDir, 'ts')
@@ -134,11 +134,11 @@ it("works with importing other vue files", async () => {
   const {
     js: { filename: destFilename, content: jsCode },
     css,
-  } = compile(mvp, { filename: "foo.vue", autoResolveImports: true });
+  } = compile(fixtures.mvp, { filename: "foo.vue", autoResolveImports: true });
   const {
     js: { filename: destFilename2, content: jsCode2 },
     css: css2,
-  } = compile(imports, { filename: "bar.vue", autoResolveImports: true });
+  } = compile(fixtures.imports, { filename: "bar.vue", autoResolveImports: true });
   expect(destFilename).toBe("foo.vue.js");
   expect(destFilename2).toBe("bar.vue.js");
   expect(css.length).toBe(1);
@@ -167,7 +167,7 @@ it("works with auto-import css", async () => {
   const {
     js: { filename: destFilename, content: jsCode },
     css,
-  } = compile(mvp, { filename: "foo.vue", autoImportCss: true });
+  } = compile(fixtures.mvp, { filename: "foo.vue", autoImportCss: true });
   expect(destFilename).toBe("foo.vue.js");
   expect(css.length).toBe(1);
   expect(css[0].content).toBeTruthy();
@@ -191,7 +191,7 @@ it("works with auto-import css without <style>", async () => {
   const {
     js: { filename: destFilename, content: jsCode },
     css,
-  } = compile(nonCss, { filename: "foo.vue", autoImportCss: true });
+  } = compile(fixtures.nonCss, { filename: "foo.vue", autoImportCss: true });
   expect(destFilename).toBe("foo.vue.js");
   expect(css.length).toBe(0);
   expect(jsCode.includes(`import './foo.vue.css'`)).toBe(false);
@@ -213,7 +213,7 @@ it("works with scoped CSS", async () => {
   const {
     js: { filename: destFilename, content: jsCode },
     css,
-  } = compile(scoped, { filename: "scoped.vue" });
+  } = compile(fixtures.scoped, { filename: "scoped.vue" });
   expect(destFilename).toBe("scoped.vue.js");
   expect(css.length).toBe(1);
   expect(css[0].content).toBeTruthy();
@@ -249,7 +249,7 @@ it("works with CSS Modules", async () => {
   const {
     js: { filename: destFilename, content: jsCode },
     css,
-  } = compile(cssModules, { filename: "css.modules.vue", autoImportCss: true });
+  } = compile(fixtures.cssModules, { filename: "css.modules.vue", autoImportCss: true });
   expect(destFilename).toBe("css.modules.vue.js");
   expect(css.length).toBe(1);
   expect(css[0].content).toBeTruthy();
@@ -270,3 +270,26 @@ it("works with CSS Modules", async () => {
   // console.log(wrapper.html())
   // TODO: test without auto-import-css
 });
+
+it("works with sass", async () => {
+  const {
+    js: { filename: destFilename, content: jsCode },
+    css,
+  } = compile(fixtures.sass, { filename: "foo.vue", autoImportCss: true });
+  expect(destFilename).toBe("foo.vue.js");
+  expect(css.length).toBe(1);
+  expect(css[0].content).toBeTruthy();
+  expect(jsCode.includes(`import './foo.vue.css'`)).toBe(true);
+  const dir = join(testDistDir, 'sass')
+  const modulePath = join(dir, destFilename)
+  if (existsSync(dir)) {
+    rmSync(dir, { recursive: true });
+  }
+  ensureDirSync(dir);
+  writeFileSync(modulePath, jsCode);
+  writeFileSync(join(dir, css[0].filename), css[0].content);
+  const HelloWorld = (await import(modulePath)).default;
+  const wrapper = render(defineComponent(HelloWorld));
+  expect(wrapper.baseElement.querySelectorAll('a').length).toBe(3);
+});
+
