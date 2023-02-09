@@ -30,6 +30,7 @@ export type CompilerOptions = {
   filename?: string;
   resolver?: FileResolver;
   autoImportCss?: boolean;
+  autoResolveImports?: boolean;
 };
 
 type SFCFeatures = {
@@ -79,31 +80,34 @@ const resolveImports = (
   cssImportList: string[],
   options?: CompilerOptions
 ): string => {
-  const resolver = options?.resolver ?? ((x) => x);
   const s = new MagicString(code);
-  const ast = babelParse(code, {
-    sourceFilename: options?.filename ?? FILENAME,
-    sourceType: "module",
-  }).program.body;
 
-  ast.forEach((node) => {
-    if (node.type === "ImportDeclaration") {
-      const srcPath = resolver(node.source.value);
-      if (srcPath) {
-        const destPath = getDestPath(srcPath);
-        if (
-          typeof node.source.start === "number" &&
-          typeof node.source.end === "number"
-        ) {
-          s.overwrite(
-            node.source.start,
-            node.source.end,
-            JSON.stringify(destPath)
-          );
+  if (options?.autoResolveImports) {
+    const resolver = options?.resolver ?? ((x) => x);
+    const ast = babelParse(code, {
+      sourceFilename: options?.filename ?? FILENAME,
+      sourceType: "module",
+    }).program.body;
+  
+    ast.forEach((node) => {
+      if (node.type === "ImportDeclaration") {
+        const srcPath = resolver(node.source.value);
+        if (srcPath) {
+          const destPath = getDestPath(srcPath);
+          if (
+            typeof node.source.start === "number" &&
+            typeof node.source.end === "number"
+          ) {
+            s.overwrite(
+              node.source.start,
+              node.source.end,
+              JSON.stringify(destPath)
+            );
+          }
         }
       }
-    }
-  });
+    });
+  }
 
   if (options?.autoImportCss) {
     cssImportList.forEach((cssImport) => {
@@ -230,10 +234,10 @@ export const compile = (
       throw new Error(`Unsupported style lang: ${style.lang}.`);
     } else if (style.module) {
       const styleVar = `style${index}`;
-      const destFilename = getCssPath(filename, index);
+      const destCssFilename = getCssPath(filename, index);
       // TODO: generate JSON file or object for CSS modules
       if (options?.autoImportCss) {
-        cssImportList.push(genCssImport(destFilename, styleVar));
+        cssImportList.push(genCssImport(destCssFilename, styleVar));
       } else {
         addedCode.push(`const ${styleVar} = {}`)
       }
@@ -248,7 +252,7 @@ export const compile = (
         scoped: style.scoped,
       });
       cssFileList.push({
-        filename: destFilename,
+        filename: destCssFilename,
         content: styleResult.code,
       });
     } else {
@@ -262,10 +266,10 @@ export const compile = (
     }
   });
   if (mainCssCodeList.length > 0) {
-    const destFilename = getCssPath(filename)
-    cssImportList.unshift(genCssImport(destFilename))
+    const destCssFilename = getCssPath(filename)
+    cssImportList.unshift(genCssImport(destCssFilename))
     cssFileList.unshift({
-      filename: destFilename,
+      filename: destCssFilename,
       content: mainCssCodeList.join("\n"),
     });
   }

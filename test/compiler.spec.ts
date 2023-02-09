@@ -134,11 +134,11 @@ it("works with importing other vue files", async () => {
   const {
     js: { filename: destFilename, content: jsCode },
     css,
-  } = compile(mvp, { filename: "foo.vue" });
+  } = compile(mvp, { filename: "foo.vue", autoResolveImports: true });
   const {
     js: { filename: destFilename2, content: jsCode2 },
     css: css2,
-  } = compile(imports, { filename: "bar.vue" });
+  } = compile(imports, { filename: "bar.vue", autoResolveImports: true });
   expect(destFilename).toBe("foo.vue.js");
   expect(destFilename2).toBe("bar.vue.js");
   expect(css.length).toBe(1);
