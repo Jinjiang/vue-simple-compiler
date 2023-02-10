@@ -72,7 +72,7 @@ export default {
 <template>
   <h1>{{ msg }}</h1>
 </template>
-`
+`;
 
 export const imports = `
 <script>
@@ -179,4 +179,3 @@ nav {
 }
 </style>
 `;
-

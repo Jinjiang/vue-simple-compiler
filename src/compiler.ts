@@ -9,8 +9,8 @@ import {
   BindingMetadata,
   CompilerOptions as SFCCompilerOptions,
 } from "vue/compiler-sfc";
-import * as typescript from 'sucrase'
-import * as sass from 'sass-embedded';
+import * as typescript from "sucrase";
+import * as sass from "sass-embedded";
 // @ts-ignore
 import hashId from "hash-sum";
 
@@ -21,9 +21,9 @@ const COMP_ID = `__sfc__`;
 
 const transformTS = (src: string): string => {
   return typescript.transform(src, {
-    transforms: ['typescript']
-  }).code
-}
+    transforms: ["typescript"],
+  }).code;
+};
 
 export type FileResolver = (filename: string) => string;
 
@@ -53,7 +53,7 @@ type SFCFeatures = {
 // - style[src=foo.css][module] -> foo.module.css
 // - style[src=foo.sass][module] -> foo.sass.module.css
 const getCssPath = (srcPath: string, index?: number): string =>
-  `${srcPath}${typeof index === 'number' ? `.${index}.module` : ""}.css`;
+  `${srcPath}${typeof index === "number" ? `.${index}.module` : ""}.css`;
 
 const getDestPath = (srcPath: string): string =>
   srcPath.endsWith(".vue")
@@ -89,7 +89,7 @@ const resolveImports = (
       sourceFilename: options?.filename ?? FILENAME,
       sourceType: "module",
     }).program.body;
-  
+
     ast.forEach((node) => {
       if (node.type === "ImportDeclaration") {
         const srcPath = resolver(node.source.value);
@@ -153,8 +153,8 @@ export const compile = (
   // get the features
   const scriptLang =
     (descriptor.script && descriptor.script.lang) ||
-    (descriptor.scriptSetup && descriptor.scriptSetup.lang)
-  features.hasTS = scriptLang === 'ts'
+    (descriptor.scriptSetup && descriptor.scriptSetup.lang);
+  features.hasTS = scriptLang === "ts";
   descriptor.styles.some((style) => {
     if (style.scoped) {
       features.hasScoped = true;
@@ -175,24 +175,23 @@ export const compile = (
   }
 
   // handle <script>
-  let jsCode = ''
+  let jsCode = "";
   let jsBindings: BindingMetadata | undefined;
   if (descriptor.script || descriptor.scriptSetup) {
-    if (scriptLang && scriptLang !== 'js' && scriptLang !== 'ts') {
+    if (scriptLang && scriptLang !== "js" && scriptLang !== "ts") {
       // TODO: support <script lang>
       throw new Error(`Unsupported script lang: ${scriptLang}`);
     } else {
-      const expressionPlugins: SFCCompilerOptions['expressionPlugins'] = features.hasTS
-        ? ['typescript']
-        : undefined
-      const scriptResult = compileScript( descriptor, {
+      const expressionPlugins: SFCCompilerOptions["expressionPlugins"] =
+        features.hasTS ? ["typescript"] : undefined;
+      const scriptResult = compileScript(descriptor, {
         id,
         inlineTemplate: true,
         templateOptions: {
           compilerOptions: {
             expressionPlugins,
-          }
-        }
+          },
+        },
       });
       const jsContent = features.hasTS
         ? transformTS(scriptResult.content)
@@ -205,7 +204,7 @@ export const compile = (
   }
 
   // handle <template>
-  let templateCode = ''
+  let templateCode = "";
   if (descriptor.template && !descriptor.scriptSetup) {
     const templateResult = compileTemplate({
       id: `data-v-${id}`,
@@ -228,13 +227,13 @@ export const compile = (
   const mainCssCodeList: string[] = [];
   descriptor.styles.forEach((style, index) => {
     const cssCode =
-      (style.lang === 'scss' || style.lang === 'sass')
+      style.lang === "scss" || style.lang === "sass"
         ? sass.compileString(style.content).css
         : style.content;
     if (style.src) {
       // TODO: support <style src>
       throw new Error(`Unsupported imported style: ${style.src}.`);
-    } else if (style.lang && style.lang !== 'scss' && style.lang !== 'sass') {
+    } else if (style.lang && style.lang !== "scss" && style.lang !== "sass") {
       throw new Error(`Unsupported style lang: ${style.lang}.`);
     } else if (style.module) {
       const styleVar = `style${index}`;
@@ -243,7 +242,7 @@ export const compile = (
       if (options?.autoImportCss) {
         cssImportList.push(genCssImport(destCssFilename, styleVar));
       } else {
-        addedCode.push(`const ${styleVar} = {}`)
+        addedCode.push(`const ${styleVar} = {}`);
       }
 
       const name = typeof style.module === "string" ? style.module : "$style";
@@ -270,8 +269,8 @@ export const compile = (
     }
   });
   if (mainCssCodeList.length > 0) {
-    const destCssFilename = getCssPath(filename)
-    cssImportList.unshift(genCssImport(destCssFilename))
+    const destCssFilename = getCssPath(filename);
+    cssImportList.unshift(genCssImport(destCssFilename));
     cssFileList.unshift({
       filename: destCssFilename,
       content: mainCssCodeList.join("\n"),
@@ -295,7 +294,7 @@ export default ${COMP_ID}
       filename: destFilename,
       content: code,
     },
-    css: cssFileList
+    css: cssFileList,
   };
 
   return result;

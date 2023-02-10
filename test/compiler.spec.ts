@@ -1,8 +1,8 @@
-import { join } from 'path'
+import { join } from "path";
 import { ensureDirSync, writeFileSync, rmSync, existsSync } from "fs-extra";
 import { beforeEach, expect, it } from "vitest";
 import { defineComponent } from "vue";
-import { render } from '@testing-library/vue'
+import { render } from "@testing-library/vue";
 
 import { compile } from "../src/compiler";
 import * as fixtures from "./fixtures";
@@ -16,32 +16,34 @@ import * as fixtures from "./fixtures";
 // - import vue files without extension name
 // - import js/css files with the same name
 
-const testDistDir = './test/dist'
+const testDistDir = "./test/dist";
 
 beforeEach(() => {
-  document.body.innerHTML = '';
-})
+  document.body.innerHTML = "";
+});
 
-it('works', async () => {
+it("works", async () => {
   const {
     js: { filename: destFilename, content: jsCode },
     css,
   } = compile(fixtures.mvp);
-  expect(destFilename).toBe('anonymous.vue.js')
+  expect(destFilename).toBe("anonymous.vue.js");
   expect(css.length).toBe(1);
   expect(css[0].filename).toBe("anonymous.vue.css");
   expect(css[0].content).toBeTruthy();
-  const dir = join(testDistDir, 'mvp')
-  const modulePath = join(dir, destFilename)
+  const dir = join(testDistDir, "mvp");
+  const modulePath = join(dir, destFilename);
   if (existsSync(dir)) {
-    rmSync(dir, { recursive: true })
+    rmSync(dir, { recursive: true });
   }
-  ensureDirSync(dir)
-  writeFileSync(modulePath, jsCode)
-  writeFileSync(join(dir, css[0].filename), css[0].content)
-  const HelloWorld = (await import(modulePath)).default
-  const result = render(defineComponent(HelloWorld))
-  expect(result.html().trim().replace(/\n/g, '')).toBe('<h1>Hello World!</h1><input>')
+  ensureDirSync(dir);
+  writeFileSync(modulePath, jsCode);
+  writeFileSync(join(dir, css[0].filename), css[0].content);
+  const HelloWorld = (await import(modulePath)).default;
+  const result = render(defineComponent(HelloWorld));
+  expect(result.html().trim().replace(/\n/g, "")).toBe(
+    "<h1>Hello World!</h1><input>"
+  );
 });
 
 it("works without <style>", async () => {
@@ -51,8 +53,8 @@ it("works without <style>", async () => {
   } = compile(fixtures.nonCss);
   expect(destFilename).toBe("anonymous.vue.js");
   expect(css.length).toBe(0);
-  const dir = join(testDistDir, 'non-css')
-  const modulePath = join(dir, destFilename)
+  const dir = join(testDistDir, "non-css");
+  const modulePath = join(dir, destFilename);
   if (existsSync(dir)) {
     rmSync(dir, { recursive: true });
   }
@@ -74,8 +76,8 @@ it("works with custom filename", async () => {
   expect(css.length).toBe(1);
   expect(css[0].filename).toBe("custom.vue.css");
   expect(css[0].content).toBeTruthy();
-  const dir = join(testDistDir, 'custom-filename')
-  const modulePath = join(dir, destFilename)
+  const dir = join(testDistDir, "custom-filename");
+  const modulePath = join(dir, destFilename);
   if (existsSync(dir)) {
     rmSync(dir, { recursive: true });
   }
@@ -89,46 +91,50 @@ it("works with custom filename", async () => {
   );
 });
 
-it('works with <script setup>', async () => {
+it("works with <script setup>", async () => {
   const {
     js: { filename: destFilename, content: jsCode },
     css,
   } = compile(fixtures.setup, { filename: "setup.vue" });
-  expect(destFilename).toBe('setup.vue.js')
+  expect(destFilename).toBe("setup.vue.js");
   expect(css.length).toBe(1);
   expect(css[0].filename).toBe("setup.vue.css");
   expect(css[0].content).toBeTruthy();
-  const dir = join(testDistDir, 'setup')
-  const modulePath = join(dir, destFilename)
+  const dir = join(testDistDir, "setup");
+  const modulePath = join(dir, destFilename);
   if (existsSync(dir)) {
-    rmSync(dir, { recursive: true })
+    rmSync(dir, { recursive: true });
   }
-  ensureDirSync(dir)
-  writeFileSync(modulePath, jsCode)
-  writeFileSync(join(dir, css[0].filename), css[0].content)
-  const HelloWorld = (await import(modulePath)).default
-  const result = render(defineComponent(HelloWorld))
-  expect(result.html().trim().replace(/\n/g, '')).toBe('<h1>Hello World!</h1><input>')
+  ensureDirSync(dir);
+  writeFileSync(modulePath, jsCode);
+  writeFileSync(join(dir, css[0].filename), css[0].content);
+  const HelloWorld = (await import(modulePath)).default;
+  const result = render(defineComponent(HelloWorld));
+  expect(result.html().trim().replace(/\n/g, "")).toBe(
+    "<h1>Hello World!</h1><input>"
+  );
 });
 
-it('works with typescript', async () => {
+it("works with typescript", async () => {
   const {
     js: { filename: destFilename, content: jsCode },
     css,
   } = compile(fixtures.ts, { filename: "ts.vue" });
-  expect(destFilename).toBe('ts.vue.js')
+  expect(destFilename).toBe("ts.vue.js");
   expect(css.length).toBe(0);
-  const dir = join(testDistDir, 'ts')
-  const modulePath = join(dir, destFilename)
+  const dir = join(testDistDir, "ts");
+  const modulePath = join(dir, destFilename);
   if (existsSync(dir)) {
-    rmSync(dir, { recursive: true })
+    rmSync(dir, { recursive: true });
   }
-  ensureDirSync(dir)
-  writeFileSync(modulePath, jsCode)
-  const HelloWorld = (await import(modulePath)).default
-  const result = render(defineComponent(HelloWorld))
-  expect(result.html().trim().replace(/\n/g, '')).toBe('<h1>Hello from Component A!</h1>')
-})
+  ensureDirSync(dir);
+  writeFileSync(modulePath, jsCode);
+  const HelloWorld = (await import(modulePath)).default;
+  const result = render(defineComponent(HelloWorld));
+  expect(result.html().trim().replace(/\n/g, "")).toBe(
+    "<h1>Hello from Component A!</h1>"
+  );
+});
 
 it("works with importing other vue files", async () => {
   const {
@@ -138,16 +144,19 @@ it("works with importing other vue files", async () => {
   const {
     js: { filename: destFilename2, content: jsCode2 },
     css: css2,
-  } = compile(fixtures.imports, { filename: "bar.vue", autoResolveImports: true });
+  } = compile(fixtures.imports, {
+    filename: "bar.vue",
+    autoResolveImports: true,
+  });
   expect(destFilename).toBe("foo.vue.js");
   expect(destFilename2).toBe("bar.vue.js");
   expect(css.length).toBe(1);
   expect(css2.length).toBe(1);
   expect(css[0].content).toBeTruthy();
   expect(css2[0].content).toBeTruthy();
-  const dir = join(testDistDir, 'imports')
-  const modulePath = join(dir, destFilename)
-  const modulePath2 = join(dir, destFilename2)
+  const dir = join(testDistDir, "imports");
+  const modulePath = join(dir, destFilename);
+  const modulePath2 = join(dir, destFilename2);
   if (existsSync(dir)) {
     rmSync(dir, { recursive: true });
   }
@@ -172,8 +181,8 @@ it("works with auto-import css", async () => {
   expect(css.length).toBe(1);
   expect(css[0].content).toBeTruthy();
   expect(jsCode.includes(`import './foo.vue.css'`)).toBe(true);
-  const dir = join(testDistDir, 'auto-import-css')
-  const modulePath = join(dir, destFilename)
+  const dir = join(testDistDir, "auto-import-css");
+  const modulePath = join(dir, destFilename);
   if (existsSync(dir)) {
     rmSync(dir, { recursive: true });
   }
@@ -195,8 +204,8 @@ it("works with auto-import css without <style>", async () => {
   expect(destFilename).toBe("foo.vue.js");
   expect(css.length).toBe(0);
   expect(jsCode.includes(`import './foo.vue.css'`)).toBe(false);
-  const dir = join(testDistDir, 'auto-import-non-css')
-  const modulePath = join(dir, destFilename)
+  const dir = join(testDistDir, "auto-import-non-css");
+  const modulePath = join(dir, destFilename);
   if (existsSync(dir)) {
     rmSync(dir, { recursive: true });
   }
@@ -218,8 +227,8 @@ it("works with scoped CSS", async () => {
   expect(css.length).toBe(1);
   expect(css[0].content).toBeTruthy();
   expect(css[0].filename).toBe("scoped.vue.css");
-  const dir = join(testDistDir, 'scoped')
-  const modulePath = join(dir, destFilename)
+  const dir = join(testDistDir, "scoped");
+  const modulePath = join(dir, destFilename);
   if (existsSync(dir)) {
     rmSync(dir, { recursive: true });
   }
@@ -249,13 +258,16 @@ it("works with CSS Modules", async () => {
   const {
     js: { filename: destFilename, content: jsCode },
     css,
-  } = compile(fixtures.cssModules, { filename: "css.modules.vue", autoImportCss: true });
+  } = compile(fixtures.cssModules, {
+    filename: "css.modules.vue",
+    autoImportCss: true,
+  });
   expect(destFilename).toBe("css.modules.vue.js");
   expect(css.length).toBe(1);
   expect(css[0].content).toBeTruthy();
   expect(css[0].filename).toBe("css.modules.vue.0.module.css");
-  const dir = join(testDistDir, 'css-modules')
-  const modulePath = join(dir, destFilename)
+  const dir = join(testDistDir, "css-modules");
+  const modulePath = join(dir, destFilename);
   if (existsSync(dir)) {
     rmSync(dir, { recursive: true });
   }
@@ -280,8 +292,8 @@ it("works with sass", async () => {
   expect(css.length).toBe(1);
   expect(css[0].content).toBeTruthy();
   expect(jsCode.includes(`import './foo.vue.css'`)).toBe(true);
-  const dir = join(testDistDir, 'sass')
-  const modulePath = join(dir, destFilename)
+  const dir = join(testDistDir, "sass");
+  const modulePath = join(dir, destFilename);
   if (existsSync(dir)) {
     rmSync(dir, { recursive: true });
   }
@@ -290,6 +302,5 @@ it("works with sass", async () => {
   writeFileSync(join(dir, css[0].filename), css[0].content);
   const HelloWorld = (await import(modulePath)).default;
   const wrapper = render(defineComponent(HelloWorld));
-  expect(wrapper.baseElement.querySelectorAll('a').length).toBe(3);
+  expect(wrapper.baseElement.querySelectorAll("a").length).toBe(3);
 });
-
