@@ -33,6 +33,7 @@
   "dependencies": {
     "@vue/compiler-sfc": "^3.2.47",
     "hash-sum": "^2.0.0",
+    "identity-obj-proxy": "^3.0.0",
     "sass-embedded": "^1.57.1",
     "sucrase": "^3.29.0",
     "vue": "^3.2.47"

@@ -46,14 +46,33 @@ type SFCFeatures = {
 // - plain css -> filename.vue.css
 // - scoped css -> filename.vue.css
 // - modules -> filename.vue.${index}.module.css
-// TODO:
-// - style[src=foo.css] -> foo.css
-// - style[src=foo.sass] -> foo.sass.css
-// - style[src=foo.css][scoped] -> foo.scoped.css
-// - style[src=foo.css][module] -> foo.module.css
-// - style[src=foo.sass][module] -> foo.sass.module.css
 const getCssPath = (srcPath: string, index?: number): string =>
   `${srcPath}${typeof index === "number" ? `.${index}.module` : ""}.css`;
+
+// - style[src=foo.css] -> foo.css
+// - style[src=foo.scss] -> foo.scss
+// - style[src=foo.css][scoped] -> foo.css?scoped=true&id=xxx
+// - style[src=foo.css][module] -> foo.css?module=true
+// - style[src=foo.scss][module] -> foo.scss?module=true
+const getExternalCssPath = (srcPath: string, options: { scoped?: boolean; id?: string; module?: boolean }): string => {
+  if (!srcPath.endsWith(".css") && !srcPath.endsWith(".scss")) {
+    throw new Error(`Unsupported CSS file: ${srcPath}`);
+  }
+  if (options.scoped && !options.id) {
+    throw new Error(`Missing id for scoped CSS: ${srcPath}`);
+  }
+  if (options.scoped && options.module) {
+    throw new Error(`Scoped CSS cannot be used with CSS modules: ${srcPath}`);
+  }
+  const query: string[] = [];
+  if (options.scoped && options.id) {
+    query.push(`scoped=true`);
+    query.push(`id=${options.id}`);
+  } else if (options.module) {
+    query.push(`module=true`);
+  }
+  return query.length ? `${srcPath}?${query.join("&")}` : srcPath;
+}
 
 const getDestPath = (srcPath: string): string =>
   srcPath.endsWith(".vue")
@@ -64,6 +83,9 @@ const genCssImport = (cssPath: string, styleVar?: string): string =>
   styleVar
     ? `import ${styleVar} from './${cssPath}';`
     : `import './${cssPath}';`;
+
+const checkExtensionName = (filename: string, ext: string[]): boolean =>
+  ext.some((e) => filename.endsWith('.' + e));
 
 /**
  * Resolve all the import statements in the generated code.
@@ -153,7 +175,7 @@ export const compile = (
   // get the features
   const scriptLang =
     (descriptor.script && descriptor.script.lang) ||
-    (descriptor.scriptSetup && descriptor.scriptSetup.lang);
+    (descriptor.scriptSetup && descriptor.scriptSetup.lang) || 'js';
   features.hasTS = scriptLang === "ts";
   descriptor.styles.some((style) => {
     if (style.scoped) {
@@ -178,9 +200,15 @@ export const compile = (
   let jsCode = "";
   let jsBindings: BindingMetadata | undefined;
   if (descriptor.script || descriptor.scriptSetup) {
-    if (scriptLang && scriptLang !== "js" && scriptLang !== "ts") {
-      // TODO: support <script lang>
+    if (scriptLang !== "js" && scriptLang !== "ts") {
       throw new Error(`Unsupported script lang: ${scriptLang}`);
+    } else if (descriptor.scriptSetup?.src) {
+      throw new Error(`Unsupported imported script setup: ${descriptor.scriptSetup.src}.`);
+    } else if (descriptor.script?.src) {
+      if (checkExtensionName(descriptor.script.src, [scriptLang])) {
+        throw new Error(`The extension name doesn't match the script language "${scriptLang}": ${descriptor.script.src}.`);
+      }
+      jsCode = `import ${COMP_ID} from ${JSON.stringify(descriptor.script.src)}`;
     } else {
       const expressionPlugins: SFCCompilerOptions["expressionPlugins"] =
         features.hasTS ? ["typescript"] : undefined;
@@ -206,10 +234,19 @@ export const compile = (
   // handle <template>
   let templateCode = "";
   if (descriptor.template && !descriptor.scriptSetup) {
+    if (descriptor.template.lang !== "html") {
+      throw new Error(`Unsupported template lang: ${descriptor.template.lang}`);
+    }
+    let source = ''
+    if (descriptor.template.src) {
+      throw new Error(`Unsupported imported template: ${descriptor.template.src}.`);
+    } else {
+      source = descriptor.template.content;
+    }
     const templateResult = compileTemplate({
       id: `data-v-${id}`,
       filename,
-      source: descriptor.template!.content,
+      source,
       scoped: features.hasScoped,
       compilerOptions: {
         bindingMetadata: jsBindings,
@@ -226,46 +263,82 @@ export const compile = (
   const cssFileList: CompileResultFile[] = [];
   const mainCssCodeList: string[] = [];
   descriptor.styles.forEach((style, index) => {
-    const cssCode =
-      style.lang === "scss" || style.lang === "sass"
-        ? sass.compileString(style.content).css
-        : style.content;
-    if (style.src) {
-      // TODO: support <style src>
-      throw new Error(`Unsupported imported style: ${style.src}.`);
-    } else if (style.lang && style.lang !== "scss" && style.lang !== "sass") {
+    if (style.lang && style.lang !== "scss" && style.lang !== "sass") {
       throw new Error(`Unsupported style lang: ${style.lang}.`);
-    } else if (style.module) {
+    } else if (style.src) {
+      if (
+        (!style.lang || style.lang === 'css') &&
+        checkExtensionName(style.src, ["css"])
+      ) {
+        throw new Error(`The extension name doesn't match the style language "css": ${style.src}.`);
+      }
+      if (
+        (style.lang === 'sass' || style.lang === 'scss') &&
+        checkExtensionName(style.src, ["scss", "sass"])
+      ) {
+        throw new Error(`The extension name doesn't match the style language "scss/sass": ${style.src}.`);
+      }
+    }
+
+    const cssCode =
+      style.src
+        ? ''
+        : style.lang === "scss" || style.lang === "sass"
+          ? sass.compileString(style.content).css
+          : style.content;
+    const destCssCode =
+      style.src
+        ? ''
+        : compileStyle({
+            id,
+            filename,
+            source: cssCode,
+            scoped: style.scoped,
+          }).code;
+
+    if (style.module) {
+      // e.g. `style0`
       const styleVar = `style${index}`;
-      const destCssFilename = getCssPath(filename, index);
-      // TODO: generate JSON file or object for CSS modules
+      const destCssFilePath =
+        style.src
+          // e.g. `./foo.css?module=true`
+          ? getExternalCssPath(style.src, { module: true })
+          // e.g. `./filename.vue.0.module.css`
+          : getCssPath(filename, index);
+
       if (options?.autoImportCss) {
-        cssImportList.push(genCssImport(destCssFilename, styleVar));
+        // e.g. `import style0 from './foo.css?module=true';`
+        // e.g. `import style0 from './filename.vue.0.module.css';`
+        cssImportList.push(genCssImport(destCssFilePath, styleVar));
       } else {
-        addedCode.push(`const ${styleVar} = {}`);
+        // only for simple testing
+        // e.g. `import style0 from 'identity-obj-proxy';`
+        cssImportList.push(`import ${styleVar} from 'identity-obj-proxy'`);
       }
 
       const name = typeof style.module === "string" ? style.module : "$style";
+      // e.g. `cssModules["style0"] = style0;`
       addedCode.push(`cssModules["${name}"] = ${styleVar}`);
 
-      const styleResult = compileStyle({
-        id,
-        filename,
-        source: cssCode,
-        scoped: style.scoped,
-      });
-      cssFileList.push({
-        filename: destCssFilename,
-        content: styleResult.code,
-      });
+      if (!style.src) {
+        cssFileList.push({
+          filename: destCssFilePath,
+          content: destCssCode,
+        });
+      }
     } else {
-      const styleResult = compileStyle({
-        id,
-        filename,
-        source: cssCode,
-        scoped: style.scoped,
-      });
-      mainCssCodeList.push(styleResult.code);
+      if (style.src) {
+        if (options?.autoImportCss) {
+          // e.g. `./foo.css?id=123`
+          // e.g. `./foo.css?scoped=true&id=123`
+          const cssPath = getExternalCssPath(style.src, { scoped: style.scoped, id });
+          // e.g. `import './foo.css?id=123';`
+          // e.g. `import './foo.css?scoped=true&id=123';`
+          cssImportList.push(genCssImport(cssPath));
+        }
+      } else {
+        mainCssCodeList.push(destCssCode);
+      }
     }
   });
   if (mainCssCodeList.length > 0) {
