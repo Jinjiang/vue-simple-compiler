@@ -279,8 +279,37 @@ it("works with CSS Modules", async () => {
   const wrapper = await render(defineComponent(HelloWorld));
   const rootElement = wrapper.baseElement.firstElementChild!;
   expect(rootElement.childElementCount).toEqual(2);
-  // console.log(wrapper.html())
-  // TODO: test without auto-import-css
+  expect(wrapper.getByText('Am I red?').classList.length).toEqual(1)
+  expect(wrapper.getByText('Red and bold').classList.length).toEqual(2)
+  expect(wrapper.getByText('Red and bold').classList[0]).toEqual(wrapper.getByText('Am I red?').classList[0])
+});
+
+it("works with CSS Modules without auto-import-css", async () => {
+  const {
+    js: { filename: destFilename, content: jsCode },
+    css,
+  } = compile(fixtures.cssModules, {
+    filename: "css.modules.vue",
+  });
+  expect(destFilename).toBe("css.modules.vue.js");
+  expect(css.length).toBe(1);
+  expect(css[0].content).toBeTruthy();
+  expect(css[0].filename).toBe("css.modules.vue.0.module.css");
+  const dir = join(testDistDir, "css-modules-without-auto-import-css");
+  const modulePath = join(dir, destFilename);
+  if (existsSync(dir)) {
+    rmSync(dir, { recursive: true });
+  }
+  ensureDirSync(dir);
+  writeFileSync(modulePath, jsCode);
+  writeFileSync(join(dir, css[0].filename), css[0].content);
+  const HelloWorld = (await import(modulePath)).default;
+  expect(HelloWorld).toHaveProperty("__cssModules");
+  const wrapper = await render(defineComponent(HelloWorld));
+  const rootElement = wrapper.baseElement.firstElementChild!;
+  expect(rootElement.childElementCount).toEqual(2);
+  expect(wrapper.getByText('Am I red?').className).toEqual('red')
+  expect(wrapper.getByText('Red and bold').className).toEqual('red bold')
 });
 
 it("works with sass", async () => {

@@ -234,7 +234,7 @@ export const compile = (
   // handle <template>
   let templateCode = "";
   if (descriptor.template && !descriptor.scriptSetup) {
-    if (descriptor.template.lang !== "html") {
+    if (descriptor.template.lang && descriptor.template.lang !== "html") {
       throw new Error(`Unsupported template lang: ${descriptor.template.lang}`);
     }
     let source = ''
@@ -311,9 +311,9 @@ export const compile = (
         // e.g. `import style0 from './filename.vue.0.module.css';`
         cssImportList.push(genCssImport(destCssFilePath, styleVar));
       } else {
-        // only for simple testing
-        // e.g. `import style0 from 'identity-obj-proxy';`
-        cssImportList.push(`import ${styleVar} from 'identity-obj-proxy'`);
+        // only for simple testing purposes
+        // e.g. `const style0 = new Proxy({}, { get: (_, key) => key })`
+        addedCode.push(`const ${styleVar} = new Proxy({}, { get: (_, key) => key })`);
       }
 
       const name = typeof style.module === "string" ? style.module : "$style";
