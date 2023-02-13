@@ -26,9 +26,13 @@ it("works", async () => {
   const {
     js: { filename: destFilename, content: jsCode },
     css,
+    externalJs,
+    externalCss,
   } = compile(fixtures.mvp);
   expect(destFilename).toBe("anonymous.vue.js");
   expect(css.length).toBe(1);
+  expect(externalJs.length).toBe(0);
+  expect(externalCss.length).toBe(0);
   expect(css[0].filename).toBe("anonymous.vue.css");
   expect(css[0].content).toBeTruthy();
   const dir = join(testDistDir, "mvp");
@@ -50,9 +54,13 @@ it("works without <style>", async () => {
   const {
     js: { filename: destFilename, content: jsCode },
     css,
+    externalJs,
+    externalCss,
   } = compile(fixtures.nonCss);
   expect(destFilename).toBe("anonymous.vue.js");
   expect(css.length).toBe(0);
+  expect(externalJs.length).toBe(0);
+  expect(externalCss.length).toBe(0);
   const dir = join(testDistDir, "non-css");
   const modulePath = join(dir, destFilename);
   if (existsSync(dir)) {
@@ -176,9 +184,13 @@ it("works with auto-import css", async () => {
   const {
     js: { filename: destFilename, content: jsCode },
     css,
+    externalJs,
+    externalCss,
   } = compile(fixtures.mvp, { filename: "foo.vue", autoImportCss: true });
   expect(destFilename).toBe("foo.vue.js");
   expect(css.length).toBe(1);
+  expect(externalJs.length).toBe(0);
+  expect(externalCss.length).toBe(0);
   expect(css[0].content).toBeTruthy();
   expect(jsCode.includes(`import './foo.vue.css'`)).toBe(true);
   const dir = join(testDistDir, "auto-import-css");
@@ -332,4 +344,194 @@ it("works with sass", async () => {
   const HelloWorld = (await import(modulePath)).default;
   const wrapper = render(defineComponent(HelloWorld));
   expect(wrapper.baseElement.querySelectorAll("a").length).toBe(3);
+});
+
+it("works with external js", async () => {
+  const {
+    js: { filename: destFilename, content: jsCode },
+    css,
+    externalJs,
+    externalCss,
+  } = compile(fixtures.externalJs, { filename: "foo.vue", autoImportCss: true });
+  expect(destFilename).toBe("foo.vue.js");
+  expect(css.length).toBe(1);
+  expect(externalJs.length).toBe(1);
+  expect(externalJs[0].filename).toBe('./external.js')
+  expect(externalJs[0].query).toEqual({})
+  expect(externalCss.length).toBe(0);
+  expect(css[0].content).toBeTruthy();
+  expect(jsCode.includes(`import './foo.vue.css'`)).toBe(true);
+  const dir = join(testDistDir, "external-js");
+  const modulePath = join(dir, destFilename);
+  if (existsSync(dir)) {
+    rmSync(dir, { recursive: true });
+  }
+  ensureDirSync(dir);
+  writeFileSync(modulePath, jsCode);
+  writeFileSync(join(dir, css[0].filename), css[0].content);
+  writeFileSync(join(dir, './external.js'), fixtures.externalJsAsset);
+  const HelloWorld = (await import(modulePath)).default;
+  const result = render(defineComponent(HelloWorld));
+  expect(result.html().trim().replace(/\n/g, "")).toBe(
+    "<h1>Hello World!</h1><input>"
+  );
+});
+
+it("works with external ts", async () => {
+  const {
+    js: { filename: destFilename, content: jsCode },
+    css,
+    externalJs,
+    externalCss,
+  } = compile(fixtures.externalTs, { filename: "foo.vue", autoImportCss: true });
+  expect(destFilename).toBe("foo.vue.js");
+  expect(css.length).toBe(0);
+  expect(externalJs.length).toBe(1);
+  expect(externalJs[0].filename).toBe('./external.ts')
+  expect(externalJs[0].query).toEqual({})
+  expect(externalCss.length).toBe(0);
+  const dir = join(testDistDir, "external-ts");
+  const modulePath = join(dir, destFilename);
+  if (existsSync(dir)) {
+    rmSync(dir, { recursive: true });
+  }
+  ensureDirSync(dir);
+  writeFileSync(modulePath, jsCode);
+  writeFileSync(join(dir, './external.ts'), fixtures.externalTsAsset);
+  const HelloWorld = (await import(modulePath)).default;
+  const result = render(defineComponent(HelloWorld));
+  expect(result.html().trim().replace(/\n/g, "")).toBe(
+    "<h1>Hello from Component A!</h1>"
+  );
+});
+
+it("works with external css", async () => {
+  const {
+    js: { filename: destFilename, content: jsCode },
+    css,
+    externalJs,
+    externalCss,
+  } = compile(fixtures.externalCss, { filename: "foo.vue", autoImportCss: true });
+  expect(destFilename).toBe("foo.vue.js");
+  expect(css.length).toBe(0);
+  expect(externalJs.length).toBe(0);
+  expect(externalCss.length).toBe(1);
+  expect(externalCss[0].filename).toBe('./external.css')
+  expect(externalCss[0].query).toEqual({})
+  expect(jsCode.includes(`import './external.css'`)).toBe(true);
+  const dir = join(testDistDir, "external-css");
+  const modulePath = join(dir, destFilename);
+  if (existsSync(dir)) {
+    rmSync(dir, { recursive: true });
+  }
+  ensureDirSync(dir);
+  writeFileSync(modulePath, jsCode);
+  writeFileSync(join(dir, './external.css'), fixtures.externalCssAsset);
+  const HelloWorld = (await import(modulePath)).default;
+  const result = render(defineComponent(HelloWorld));
+  expect(result.html().trim().replace(/\n/g, "")).toBe(
+    "<h1>Hello World!</h1><input>"
+  );
+});
+
+it("works with external sass", async () => {
+  const {
+    js: { filename: destFilename, content: jsCode },
+    css,
+    externalJs,
+    externalCss,
+  } = compile(fixtures.externalSass, { filename: "foo.vue", autoImportCss: true });
+  expect(destFilename).toBe("foo.vue.js");
+  expect(css.length).toBe(0);
+  expect(externalJs.length).toBe(0);
+  expect(externalCss.length).toBe(1);
+  expect(externalCss[0].filename).toBe('./external.scss')
+  expect(externalCss[0].query).toEqual({})
+  expect(jsCode.includes(`import './external.scss'`)).toBe(true);
+  const dir = join(testDistDir, "external-sass");
+  const modulePath = join(dir, destFilename);
+  if (existsSync(dir)) {
+    rmSync(dir, { recursive: true });
+  }
+  ensureDirSync(dir);
+  writeFileSync(modulePath, jsCode);
+  writeFileSync(join(dir, './external.scss'), fixtures.externalSassAsset);
+  const HelloWorld = (await import(modulePath)).default;
+  const wrapper = render(defineComponent(HelloWorld));
+  expect(wrapper.baseElement.querySelectorAll("a").length).toBe(3);
+});
+
+it("works with external scoped css", async () => {
+  const {
+    js: { filename: destFilename, content: jsCode },
+    css,
+    externalJs,
+    externalCss,
+  } = compile(fixtures.externalScoped, { filename: "foo.vue", autoImportCss: true });
+  expect(destFilename).toBe("foo.vue.js");
+  expect(css.length).toBe(0);
+  expect(externalJs.length).toBe(0);
+  expect(externalCss.length).toBe(1);
+  expect(externalCss[0].filename).toBe('./external.css')
+  expect(externalCss[0].query.scoped).toEqual("true")
+  expect(externalCss[0].query.id).toBeTruthy()
+  expect(jsCode.includes(`import './external.css?scoped=true&id=${
+    externalCss[0].query.id
+  }'`)).toBe(true);
+  const dir = join(testDistDir, "external-scoped");
+  const modulePath = join(dir, destFilename);
+  if (existsSync(dir)) {
+    rmSync(dir, { recursive: true });
+  }
+  ensureDirSync(dir);
+  writeFileSync(modulePath, jsCode);
+  writeFileSync(join(dir, './external.css'), fixtures.externalScopedAsset);
+  const HelloWorld = (await import(modulePath)).default;
+  const wrapper = render(defineComponent(HelloWorld));
+  const rootElement = wrapper.baseElement.firstElementChild!;
+  expect(rootElement.childElementCount).toEqual(2);
+  expect(rootElement.children[0].tagName).toEqual("H1");
+  expect(rootElement.children[0].className).toEqual("title");
+  expect(rootElement.children[0].textContent).toEqual("Hello World!");
+  expect(rootElement.children[0].attributes.item(0)!.name).toMatch(
+    /^data\-v\-/
+  );
+  expect(rootElement.children[1].tagName).toEqual("INPUT");
+  expect(rootElement.children[0].attributes.item(0)!.name).toMatch(
+    externalCss[0].query.id
+  );
+  expect(rootElement.children[1].attributes.item(0)!.name).toEqual(
+    rootElement.children[0].attributes.item(0)!.name
+  );
+});
+
+it("works with external css modules", async () => {
+  const {
+    js: { filename: destFilename, content: jsCode },
+    css,
+    externalJs,
+    externalCss,
+  } = compile(fixtures.externalCssModules, { filename: "foo.vue", autoImportCss: true });
+  expect(destFilename).toBe("foo.vue.js");
+  expect(css.length).toBe(0);
+  expect(externalJs.length).toBe(0);
+  expect(externalCss.length).toBe(1);
+  expect(externalCss[0].filename).toBe('./external.module.css')
+  expect(externalCss[0].query).toEqual({ module: "true" })
+  expect(jsCode.includes(`import style0 from './external.module.css?module=true'`)).toBe(true);
+  const dir = join(testDistDir, "external-css-modules");
+  const modulePath = join(dir, destFilename);
+  if (existsSync(dir)) {
+    rmSync(dir, { recursive: true });
+  }
+  ensureDirSync(dir);
+  writeFileSync(modulePath, jsCode);
+  writeFileSync(join(dir, './external.module.css'), fixtures.externalCssModulesAsset);
+  const HelloWorld = (await import(modulePath)).default;
+  const wrapper = render(defineComponent(HelloWorld));
+  const rootElement = wrapper.baseElement.firstElementChild!;
+  expect(rootElement.childElementCount).toEqual(2);
+  expect(wrapper.getByText('Am I red?').classList.length).toEqual(1)
+  expect(wrapper.getByText('Red and bold').classList.length).toEqual(2)
+  expect(wrapper.getByText('Am I red?').classList[0]).toEqual(wrapper.getByText('Red and bold').classList[0])
 });
