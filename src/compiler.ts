@@ -8,23 +8,28 @@ import {
   MagicString,
   BindingMetadata,
   CompilerOptions as SFCCompilerOptions,
+SFCScriptBlock,
 } from "vue/compiler-sfc";
 import * as typescript from "sucrase";
 import * as sass from "sass-embedded";
 // @ts-ignore
 import hashId from "hash-sum";
-// TODO: update deps
-import { SourceMap } from "module";
+import { RawSourceMap } from "source-map";
 
 const ID = "__demo__";
 const FILENAME = "anonymous.vue";
 
 const COMP_ID = `__sfc__`;
 
-const transformTS = (src: string): string => {
+type TransformResult = {
+  code: string;
+  sourceMap?: RawSourceMap;
+}
+
+const transformTS = (src: string): TransformResult => {
   return typescript.transform(src, {
     transforms: ["typescript"],
-  }).code;
+  });
 };
 
 export type FileResolver = (filename: string) => string;
@@ -98,13 +103,13 @@ const checkExtensionName = (filename: string, ext: string[]): boolean =>
  * @param code the generated code from vue/compiler-sfc
  * @param cssImportList an array of css import strings to prepend
  * @param options the compiler options
- * @returns the resolved code
+ * @returns the resolved code, including content and source map
  */
 const resolveImports = (
   code: string,
   cssImportList: string[],
   options?: CompilerOptions
-): string => {
+): TransformResult => {
   const s = new MagicString(code);
 
   if (options?.autoResolveImports) {
@@ -140,13 +145,16 @@ const resolveImports = (
     });
   }
 
-  return s.toString();
+  return {
+    code: s.toString(),
+    sourceMap: s.generateMap({ hires: true })
+  };
 };
 
 export type CompileResultFile = {
   filename: string;
   content: string;
-  map?: SourceMap;
+  map?: RawSourceMap | undefined;
 };
 
 export type CompileResultExternalFile = {
@@ -162,12 +170,14 @@ export type CompileResult = {
   errors: Error[];
 };
 
-const getErrorResult = (errors: Error[], filename?: string): CompileResult => ({
+const getErrorResult = (errors: (string | Error)[], filename?: string): CompileResult => ({
   js: { filename: filename ?? FILENAME, content: "" },
   css: [],
   externalJs: [],
   externalCss: [],
-  errors,
+  errors: errors.map(
+    error => typeof error === 'string' ? new Error(error) : error
+  ),
 });
 
 /**
@@ -182,6 +192,7 @@ export const compile = (
   options?: CompilerOptions
 ): CompileResult => {
   const errors: Error[] = [];
+  let map: RawSourceMap | undefined;
 
   const filename = options?.filename ?? FILENAME;
   const destFilename = getDestPath(filename);
@@ -242,20 +253,33 @@ export const compile = (
     } else {
       const expressionPlugins: SFCCompilerOptions["expressionPlugins"] =
         features.hasTS ? ["typescript"] : undefined;
-      const scriptResult = compileScript(descriptor, {
-        id,
-        inlineTemplate: true,
-        templateOptions: {
-          compilerOptions: {
-            expressionPlugins,
+      let scriptBlock: SFCScriptBlock;
+      try {
+        scriptBlock = compileScript(descriptor, {
+          id,
+          inlineTemplate: true,
+          templateOptions: {
+            compilerOptions: {
+              expressionPlugins,
+            },
           },
-        },
-      });
-      const jsContent = features.hasTS
-        ? transformTS(scriptResult.content)
-        : scriptResult.content;
-      jsCode = rewriteDefault(jsContent, COMP_ID, expressionPlugins);
-      jsBindings = scriptResult.bindings;
+        });
+      } catch (error) {
+        return getErrorResult([error as Error], destFilename);
+      }
+      map = scriptBlock.map as RawSourceMap | undefined;
+      if (features.hasTS) {
+        try {
+          const transformed = transformTS(scriptBlock.content);
+          // TODO: merge script source map
+          jsCode = rewriteDefault(transformed.code, COMP_ID, expressionPlugins);
+        } catch (error) {
+          return getErrorResult([error as Error], destFilename);
+        }
+      } else {
+        jsCode = rewriteDefault(scriptBlock.content, COMP_ID, expressionPlugins);
+      }
+      jsBindings = scriptBlock.bindings;
     }
   } else {
     jsCode = `const ${COMP_ID} = {}`;
@@ -279,6 +303,11 @@ export const compile = (
         bindingMetadata: jsBindings,
       },
     });
+    if (templateResult.errors.length) {
+      return getErrorResult(templateResult.errors, destFilename);
+    }
+    // TODO: merge template source map
+    templateResult.map
     templateCode = `${templateResult.code.replace(
       /\nexport (function|const) (render|ssrRender)/,
       `$1 render`
@@ -322,21 +351,42 @@ export const compile = (
       externalCssList.push(externalCss);
     }
 
-    const cssCode =
-      style.src
-        ? ''
-        : style.lang === "scss" || style.lang === "sass"
-          ? sass.compileString(style.content).css
-          : style.content;
-    const destCssCode =
-      style.src
-        ? ''
-        : compileStyle({
-            id,
-            filename,
-            source: cssCode,
-            scoped: style.scoped,
-          }).code;
+    let transformedCss: TransformResult;
+    if (style.src) {
+      transformedCss = { code: '' };
+    } else if (style.lang === "scss" || style.lang === "sass") {
+      try {
+        const result = sass.compileString(style.content);
+        transformedCss = {
+          code: result.css,
+          sourceMap: result.sourceMap as RawSourceMap | undefined,
+        };
+      } catch (error) {
+        errors.push(error as Error);
+        return false;
+      }
+    } else {
+      transformedCss = { code: style.content };
+    }
+
+    let destCssCode = ''
+    let styleMap: RawSourceMap | undefined;
+    if (!style.src) {
+      // TODO: inMap
+      const compiledStyle = compileStyle({
+        id,
+        filename,
+        source: transformedCss.code,
+        scoped: style.scoped,
+      });
+      if (compiledStyle.errors.length) {
+        errors.push(...compiledStyle.errors);
+        return false;
+      }
+      destCssCode = compiledStyle.code;
+      // TODO: merge source map
+      styleMap = compiledStyle.map as RawSourceMap | undefined;
+    }
 
     if (style.module) {
       // e.g. `style0`
@@ -366,6 +416,7 @@ export const compile = (
         cssFileList.push({
           filename: getCssPath(filename, index),
           content: destCssCode,
+          map: styleMap,
         });
       }
     } else {
@@ -402,8 +453,9 @@ export const compile = (
   const resolvedJsCode = resolveImports(jsCode, cssImportList, options);
 
   // assemble the final code
+  // TODO: merge source map
   const code = `
-${resolvedJsCode}
+${resolvedJsCode.code}
 ${templateCode}
 ${addedCodeList.join("\n")}
 ${addedProps.map(([key, value]) => `${COMP_ID}.${key} = ${value}`).join("\n")}
@@ -414,6 +466,7 @@ export default ${COMP_ID}
     js: {
       filename: destFilename,
       content: code,
+      map,
     },
     css: cssFileList,
     externalJs: externalJsList,
