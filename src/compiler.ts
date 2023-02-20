@@ -13,6 +13,8 @@ import * as typescript from "sucrase";
 import * as sass from "sass-embedded";
 // @ts-ignore
 import hashId from "hash-sum";
+// TODO: update deps
+import { SourceMap } from "module";
 
 const ID = "__demo__";
 const FILENAME = "anonymous.vue";
@@ -144,6 +146,7 @@ const resolveImports = (
 export type CompileResultFile = {
   filename: string;
   content: string;
+  map?: SourceMap;
 };
 
 export type CompileResultExternalFile = {
@@ -156,6 +159,7 @@ export type CompileResult = {
   css: CompileResultFile[];
   externalJs: CompileResultExternalFile[];
   externalCss: CompileResultExternalFile[];
+  errors: Error[];
 };
 
 /**
@@ -169,6 +173,8 @@ export const compile = (
   source: string,
   options?: CompilerOptions
 ): CompileResult => {
+  const errors: Error[] = [];
+
   const filename = options?.filename ?? FILENAME;
   const destFilename = getDestPath(filename);
   const id = options?.filename ? hashId(options?.filename) : ID;
@@ -392,6 +398,7 @@ export default ${COMP_ID}
     css: cssFileList,
     externalJs: externalJsList,
     externalCss: externalCssList,
+    errors,
   };
 
   return result;
