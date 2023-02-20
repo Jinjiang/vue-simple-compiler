@@ -250,16 +250,13 @@ export const compile = (
     if (descriptor.template.lang && descriptor.template.lang !== "html") {
       throw new Error(`Unsupported template lang: ${descriptor.template.lang}`);
     }
-    let source = ''
     if (descriptor.template.src) {
       throw new Error(`Unsupported external template: ${descriptor.template.src}.`);
-    } else {
-      source = descriptor.template.content;
     }
     const templateResult = compileTemplate({
       id: `data-v-${id}`,
       filename,
-      source,
+      source: descriptor.template.content,
       scoped: features.hasScoped,
       compilerOptions: {
         bindingMetadata: jsBindings,
