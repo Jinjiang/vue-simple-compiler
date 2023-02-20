@@ -162,6 +162,14 @@ export type CompileResult = {
   errors: Error[];
 };
 
+const getErrorResult = (errors: Error[], filename?: string): CompileResult => ({
+  js: { filename: filename ?? FILENAME, content: "" },
+  css: [],
+  externalJs: [],
+  externalCss: [],
+  errors,
+});
+
 /**
  * NOTICE: this API is experimental and may change without notice.
  * Compile a vue file into JavaScript and CSS.
@@ -180,7 +188,10 @@ export const compile = (
   const id = options?.filename ? hashId(options?.filename) : ID;
 
   // get the code structure
-  const { descriptor } = parse(source);
+  const { descriptor, errors: mainCompilerErrors } = parse(source);
+  if (errors.length) {
+    return getErrorResult(mainCompilerErrors, destFilename);
+  }
   const features: SFCFeatures = {};
   const addedProps: Array<[key: string, value: string]> = [];
   const addedCodeList: string[] = [];
@@ -216,12 +227,12 @@ export const compile = (
   let jsBindings: BindingMetadata | undefined;
   if (descriptor.script || descriptor.scriptSetup) {
     if (scriptLang !== "js" && scriptLang !== "ts") {
-      throw new Error(`Unsupported script lang: ${scriptLang}`);
+      return getErrorResult([new Error(`Unsupported script lang: ${scriptLang}`)], destFilename);
     } else if (descriptor.scriptSetup?.src) {
-      throw new Error(`Unsupported external script setup: ${descriptor.scriptSetup.src}.`);
+      return getErrorResult([new Error(`Unsupported external script setup: ${descriptor.scriptSetup.src}`)], destFilename);
     } else if (descriptor.script?.src) {
       if (!checkExtensionName(descriptor.script.src, [scriptLang])) {
-        throw new Error(`The extension name doesn't match the script language "${scriptLang}": ${descriptor.script.src}.`);
+        return getErrorResult([new Error(`The extension name doesn't match the script language "${scriptLang}": ${descriptor.script.src}.`)], destFilename);
       }
       externalJsList.push({
         filename: descriptor.script.src,
@@ -254,10 +265,10 @@ export const compile = (
   let templateCode = "";
   if (descriptor.template && !descriptor.scriptSetup) {
     if (descriptor.template.lang && descriptor.template.lang !== "html") {
-      throw new Error(`Unsupported template lang: ${descriptor.template.lang}`);
+      return getErrorResult([new Error(`Unsupported template lang: ${descriptor.template.lang}`)], destFilename);
     }
     if (descriptor.template.src) {
-      throw new Error(`Unsupported external template: ${descriptor.template.src}.`);
+      return getErrorResult([new Error(`Unsupported external template: ${descriptor.template.src}.`)], destFilename);
     }
     const templateResult = compileTemplate({
       id: `data-v-${id}`,
@@ -278,21 +289,24 @@ export const compile = (
   const cssImportList: string[] = [];
   const cssFileList: CompileResultFile[] = [];
   const mainCssCodeList: string[] = [];
-  descriptor.styles.forEach((style, index) => {
+  descriptor.styles.every((style, index) => {
     if (style.lang && style.lang !== "scss" && style.lang !== "sass") {
-      throw new Error(`Unsupported style lang: ${style.lang}.`);
+      errors.push(new Error(`Unsupported style lang: ${style.lang}.`));
+      return false;
     } else if (style.src) {
       if (
         (!style.lang || style.lang === 'css') &&
         !checkExtensionName(style.src, ["css"])
       ) {
-        throw new Error(`The extension name doesn't match the style language "css": ${style.src}.`);
+        errors.push(new Error(`The extension name doesn't match the style language "css": ${style.src}.`));
+        return false;
       }
       if (
         (style.lang === 'sass' || style.lang === 'scss') &&
         !checkExtensionName(style.src, ["scss", "sass"])
       ) {
-        throw new Error(`The extension name doesn't match the style language "scss/sass": ${style.src}.`);
+        errors.push(new Error(`The extension name doesn't match the style language "scss/sass": ${style.src}.`));
+        return false;
       }
       const externalCss: CompileResultExternalFile = {
         filename: style.src,
@@ -368,7 +382,13 @@ export const compile = (
         mainCssCodeList.push(destCssCode);
       }
     }
+
+    return true;
   });
+  if (errors.length) {
+    return getErrorResult(errors, destFilename);
+  }
+
   if (mainCssCodeList.length > 0) {
     const destCssFilename = getCssPath(filename);
     cssImportList.unshift(genCssImport(`./${destCssFilename}`));
