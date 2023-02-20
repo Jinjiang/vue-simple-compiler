@@ -39,6 +39,7 @@ export type CompilerOptions = {
   resolver?: FileResolver;
   autoImportCss?: boolean;
   autoResolveImports?: boolean;
+  isProd?: boolean;
 };
 
 type SFCFeatures = {
@@ -196,7 +197,7 @@ export const compile = (
 
   const filename = options?.filename ?? FILENAME;
   const destFilename = getDestPath(filename);
-  const id = options?.filename ? hashId(options?.filename) : ID;
+  const id = options?.filename ? hashId(filename + source) : ID;
 
   // get the code structure
   const { descriptor, errors: mainCompilerErrors } = parse(source);
@@ -255,6 +256,7 @@ export const compile = (
         features.hasTS ? ["typescript"] : undefined;
       let scriptBlock: SFCScriptBlock;
       try {
+        // TODO: add isProd
         scriptBlock = compileScript(descriptor, {
           id,
           inlineTemplate: true,
@@ -294,6 +296,7 @@ export const compile = (
     if (descriptor.template.src) {
       return getErrorResult([new Error(`Unsupported external template: ${descriptor.template.src}.`)], destFilename);
     }
+    // TODO: add isProd
     const templateResult = compileTemplate({
       id: `data-v-${id}`,
       filename,
@@ -373,6 +376,7 @@ export const compile = (
     let styleMap: RawSourceMap | undefined;
     if (!style.src) {
       // TODO: inMap
+      // TODO: add isProd
       const compiledStyle = compileStyle({
         id,
         filename,
@@ -411,6 +415,14 @@ export const compile = (
       const name = typeof style.module === "string" ? style.module : "$style";
       // e.g. `cssModules["style0"] = style0;`
       addedCodeList.push(`cssModules["${name}"] = ${styleVar}`);
+      // TODO: add cssModules(name, styleVar, request) in dev mode
+      // /* hot reload */
+      // if (module.hot) {
+      //   module.hot.accept(${request}, () => {
+      //     cssModules["${name}"] = ${styleVar}
+      //     __VUE_HMR_RUNTIME__.rerender("${id}")
+      //   })
+      // }
 
       if (!style.src) {
         cssFileList.push({
@@ -454,7 +466,23 @@ export const compile = (
 
   // assemble the final code
   // TODO: merge source map
-  const code = `
+  // TODO: add __file in dev mode
+  // TODO: add hotReload(id, request) in dev mode
+  // /* hot reload */
+  // if (module.hot) {
+  //   __exports__.__hmrId = "${id}"
+  //   const api = __VUE_HMR_RUNTIME__
+  //   module.hot.accept()
+  //   if (!api.createRecord('${id}', __exports__)) {
+  //     api.reload('${id}', __exports__)
+  //   }
+  //   if (request) {
+  //     module.hot.accept(${request}, () => {
+  //       api.rerender('${id}', render)
+  //     })
+  //   }
+  // }
+const code = `
 ${resolvedJsCode.code}
 ${templateCode}
 ${addedCodeList.join("\n")}
