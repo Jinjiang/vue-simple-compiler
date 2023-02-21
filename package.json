@@ -33,8 +33,8 @@
   "dependencies": {
     "@vue/compiler-sfc": "^3.2.47",
     "hash-sum": "^2.0.0",
-    "sass-embedded": "^1.57.1",
-    "source-map": "^0.7.4",
+    "magic-string": "^0.27.0",
+    "source-map": "^0.6.1",
     "sucrase": "^3.29.0",
     "vue": "^3.2.47"
   },

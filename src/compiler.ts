@@ -5,16 +5,19 @@ import {
   compileStyle,
   rewriteDefault,
   babelParse,
-  MagicString,
   BindingMetadata,
   CompilerOptions as SFCCompilerOptions,
 SFCScriptBlock,
 } from "vue/compiler-sfc";
 import * as typescript from "sucrase";
-import * as sass from "sass-embedded";
+import * as sass from "sass";
 // @ts-ignore
 import hashId from "hash-sum";
-import { RawSourceMap } from "source-map";
+// The version of source-map is v0.6.x since:
+// 1. source-map v0.7.x doesn't support sync APIs.
+// 2. vue/compiler-sfc also uses source-map v0.6.x.
+import { SourceMapConsumer, SourceMapGenerator, RawSourceMap } from "source-map";
+import MagicString, { Bundle } from "magic-string";
 
 const ID = "__demo__";
 const FILENAME = "anonymous.vue";
@@ -23,13 +26,80 @@ const COMP_ID = `__sfc__`;
 
 type TransformResult = {
   code: string;
+  // The "version" inside is string type rather than number type
+  // since it's based on source-map v0.6.x.
   sourceMap?: RawSourceMap;
 }
 
-const transformTS = (src: string): TransformResult => {
+// https://github.com/vuejs/core/blob/main/packages/compiler-sfc/src/compileTemplate.ts
+const mergeSourceMap = (oldMap: RawSourceMap | undefined, newMap: RawSourceMap | undefined): RawSourceMap | undefined => {
+  if (!oldMap) return newMap
+  if (!newMap) return oldMap
+
+  const oldMapConsumer = new SourceMapConsumer(oldMap)
+  const newMapConsumer = new SourceMapConsumer(newMap)
+  const mergedMapGenerator = new SourceMapGenerator()
+
+  newMapConsumer.eachMapping(m => {
+    if (m.originalLine == null) {
+      return
+    }
+
+    const origPosInOldMap = oldMapConsumer.originalPositionFor({
+      line: m.originalLine,
+      column: m.originalColumn
+    })
+
+    if (origPosInOldMap.source == null) {
+      return
+    }
+
+    mergedMapGenerator.addMapping({
+      generated: {
+        line: m.generatedLine,
+        column: m.generatedColumn
+      },
+      original: {
+        line: origPosInOldMap.line ?? 0, // map line
+        // use current column, since the oldMap produced by @vue/compiler-sfc
+        // does not
+        column: m.originalColumn
+      },
+      source: origPosInOldMap.source,
+      name: origPosInOldMap.name ?? ''
+    })
+  })
+
+  // source-map's type definition is incomplete
+  const generator = mergedMapGenerator as any
+  ;(oldMapConsumer as any).sources.forEach((sourceFile: string) => {
+    generator._sources.add(sourceFile)
+    const sourceContent = oldMapConsumer.sourceContentFor(sourceFile)
+    if (sourceContent != null) {
+      mergedMapGenerator.setSourceContent(sourceFile, sourceContent)
+    }
+  })
+
+  generator._sourceRoot = oldMap.sourceRoot
+  generator._file = oldMap.file
+  return generator.toJSON()
+}
+
+const bundleSourceMap = (list: TransformResult[]): TransformResult => {
+  const bundle = new Bundle();
+  list.forEach((item) => {
+    // TODO: bundle source map
+  });
+  return {
+    code: bundle.toString(),
+    sourceMap: bundle.generateMap({ hires: true }) as unknown as RawSourceMap,
+  };
+};
+
+const transformTS = (src: string) => {
   return typescript.transform(src, {
     transforms: ["typescript"],
-  });
+  }) as TransformResult;
 };
 
 export type FileResolver = (filename: string) => string;
@@ -148,15 +218,13 @@ const resolveImports = (
 
   return {
     code: s.toString(),
-    sourceMap: s.generateMap({ hires: true })
+    sourceMap: s.generateMap({ hires: true }) as unknown as RawSourceMap
   };
 };
 
 export type CompileResultFile = {
   filename: string;
-  content: string;
-  map?: RawSourceMap | undefined;
-};
+} & TransformResult;
 
 export type CompileResultExternalFile = {
   filename: string;
@@ -172,7 +240,7 @@ export type CompileResult = {
 };
 
 const getErrorResult = (errors: (string | Error)[], filename?: string): CompileResult => ({
-  js: { filename: filename ?? FILENAME, content: "" },
+  js: { filename: filename ?? FILENAME, code: "" },
   css: [],
   externalJs: [],
   externalCss: [],
@@ -269,11 +337,11 @@ export const compile = (
       } catch (error) {
         return getErrorResult([error as Error], destFilename);
       }
-      map = scriptBlock.map as RawSourceMap | undefined;
+      map = scriptBlock.map;
       if (features.hasTS) {
         try {
           const transformed = transformTS(scriptBlock.content);
-          // TODO: merge script source map
+          map = mergeSourceMap(map, transformed.sourceMap);
           jsCode = rewriteDefault(transformed.code, COMP_ID, expressionPlugins);
         } catch (error) {
           return getErrorResult([error as Error], destFilename);
@@ -309,8 +377,7 @@ export const compile = (
     if (templateResult.errors.length) {
       return getErrorResult(templateResult.errors, destFilename);
     }
-    // TODO: merge template source map
-    templateResult.map
+    map = mergeSourceMap(map, templateResult.map);
     templateCode = `${templateResult.code.replace(
       /\nexport (function|const) (render|ssrRender)/,
       `$1 render`
@@ -362,7 +429,7 @@ export const compile = (
         const result = sass.compileString(style.content);
         transformedCss = {
           code: result.css,
-          sourceMap: result.sourceMap as RawSourceMap | undefined,
+          sourceMap: result.sourceMap,
         };
       } catch (error) {
         errors.push(error as Error);
@@ -375,21 +442,20 @@ export const compile = (
     let destCssCode = ''
     let styleMap: RawSourceMap | undefined;
     if (!style.src) {
-      // TODO: inMap
       // TODO: add isProd
       const compiledStyle = compileStyle({
         id,
         filename,
         source: transformedCss.code,
         scoped: style.scoped,
+        inMap: transformedCss.sourceMap,
       });
       if (compiledStyle.errors.length) {
         errors.push(...compiledStyle.errors);
         return false;
       }
       destCssCode = compiledStyle.code;
-      // TODO: merge source map
-      styleMap = compiledStyle.map as RawSourceMap | undefined;
+      styleMap = mergeSourceMap(map, compiledStyle.map);
     }
 
     if (style.module) {
@@ -427,8 +493,8 @@ export const compile = (
       if (!style.src) {
         cssFileList.push({
           filename: getCssPath(filename, index),
-          content: destCssCode,
-          map: styleMap,
+          code: destCssCode,
+          sourceMap: styleMap,
         });
       }
     } else {
@@ -457,7 +523,7 @@ export const compile = (
     cssImportList.unshift(genCssImport(`./${destCssFilename}`));
     cssFileList.unshift({
       filename: destCssFilename,
-      content: mainCssCodeList.join("\n"),
+      code: mainCssCodeList.join("\n"),
     });
   }
 
@@ -482,19 +548,19 @@ export const compile = (
   //     })
   //   }
   // }
-const code = `
-${resolvedJsCode.code}
-${templateCode}
-${addedCodeList.join("\n")}
-${addedProps.map(([key, value]) => `${COMP_ID}.${key} = ${value}`).join("\n")}
-export default ${COMP_ID}
-  `.trim();
+  const finalTransformedResult = bundleSourceMap([
+    resolvedJsCode,
+    { code: templateCode, sourceMap: map },
+    { code: addedCodeList.join("\n") },
+    { code: addedProps.map(([key, value]) => `${COMP_ID}.${key} = ${value}`).join("\n") },
+    { code: `export default ${COMP_ID}` },
+  ])
 
   const result: CompileResult = {
     js: {
       filename: destFilename,
-      content: code,
-      map,
+      code: finalTransformedResult.code,
+      sourceMap: finalTransformedResult.sourceMap,
     },
     css: cssFileList,
     externalJs: externalJsList,
