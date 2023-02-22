@@ -8,6 +8,7 @@ import {
   BindingMetadata,
   CompilerOptions as SFCCompilerOptions,
 SFCScriptBlock,
+SFCBlock,
 } from "vue/compiler-sfc";
 import * as typescript from "sucrase";
 import * as sass from "sass";
@@ -249,6 +250,17 @@ const getErrorResult = (errors: (string | Error)[], filename?: string): CompileR
   ),
 });
 
+const debugBlock = ({ content, map }: SFCBlock) => {
+  const info = new SourceMapConsumer(map!)
+  console.log('-----------------')
+  console.log(content)
+  console.log('-----------------')
+  console.log((info as any).sourcesContent[0])
+  console.log('-----------------')
+  console.log((info as any)._mappings)
+  console.log('-----------------')
+}
+
 /**
  * NOTICE: this API is experimental and may change without notice.
  * Compile a vue file into JavaScript and CSS.
@@ -268,7 +280,12 @@ export const compile = (
   const id = options?.filename ? hashId(filename + source) : ID;
 
   // get the code structure
-  const { descriptor, errors: mainCompilerErrors } = parse(source);
+  // - descriptor.template { map, type, attrs, content, loc, ast }
+  // - descriptor.script { map, type, attrs, content, loc, setup }
+  // - descriptor.scriptSetup  { type, attrs, content, loc, setup }
+  // - descriptor.style[] { map, type, attrs, content, loc }
+  // - descriptor { filename, source, cssVars, slotted, customBlocks, shouldForceReload }
+  const { descriptor, errors: mainCompilerErrors } = parse(source, { filename });
   if (errors.length) {
     return getErrorResult(mainCompilerErrors, destFilename);
   }
@@ -324,7 +341,7 @@ export const compile = (
         features.hasTS ? ["typescript"] : undefined;
       let scriptBlock: SFCScriptBlock;
       try {
-        // TODO: add isProd
+        // TODO: env: add isProd
         scriptBlock = compileScript(descriptor, {
           id,
           inlineTemplate: true,
@@ -334,14 +351,17 @@ export const compile = (
             },
           },
         });
+        // debugBlock(scriptBlock)
       } catch (error) {
         return getErrorResult([error as Error], destFilename);
       }
+      // basic source map
       map = scriptBlock.map;
       if (features.hasTS) {
         try {
           const transformed = transformTS(scriptBlock.content);
-          map = mergeSourceMap(map, transformed.sourceMap);
+          // TODO: map: x (transformed.sourceMap + scriptBlock.position)
+          // map = mergeSourceMap(map, transformed.sourceMap, scriptBlock.loc);
           jsCode = rewriteDefault(transformed.code, COMP_ID, expressionPlugins);
         } catch (error) {
           return getErrorResult([error as Error], destFilename);
@@ -364,7 +384,7 @@ export const compile = (
     if (descriptor.template.src) {
       return getErrorResult([new Error(`Unsupported external template: ${descriptor.template.src}.`)], destFilename);
     }
-    // TODO: add isProd
+    // TODO: env: add isProd
     const templateResult = compileTemplate({
       id: `data-v-${id}`,
       filename,
@@ -377,10 +397,12 @@ export const compile = (
     if (templateResult.errors.length) {
       return getErrorResult(templateResult.errors, destFilename);
     }
-    map = mergeSourceMap(map, templateResult.map);
+    // templateResult.map: template source -> render function
+    // TODO: map: x (templateResult.map + templateBlock.position)
+    // map = mergeSourceMap(map, templateResult.map, descriptor.template.loc);
     templateCode = `${templateResult.code.replace(
       /\nexport (function|const) (render|ssrRender)/,
-      `$1 render`
+      `\n$1 render`
     )}\n${COMP_ID}.render = render`;
   }
 
@@ -442,7 +464,7 @@ export const compile = (
     let destCssCode = ''
     let styleMap: RawSourceMap | undefined;
     if (!style.src) {
-      // TODO: add isProd
+      // TODO: env: add isProd
       const compiledStyle = compileStyle({
         id,
         filename,
@@ -450,12 +472,13 @@ export const compile = (
         scoped: style.scoped,
         inMap: transformedCss.sourceMap,
       });
+      // TODO: map: sass source map
       if (compiledStyle.errors.length) {
         errors.push(...compiledStyle.errors);
         return false;
       }
       destCssCode = compiledStyle.code;
-      styleMap = mergeSourceMap(map, compiledStyle.map);
+      // styleMap = mergeSourceMap(map, compiledStyle.map);
     }
 
     if (style.module) {
@@ -481,7 +504,7 @@ export const compile = (
       const name = typeof style.module === "string" ? style.module : "$style";
       // e.g. `cssModules["style0"] = style0;`
       addedCodeList.push(`cssModules["${name}"] = ${styleVar}`);
-      // TODO: add cssModules(name, styleVar, request) in dev mode
+      // TODO: hmr: add cssModules(name, styleVar, request) in dev mode
       // /* hot reload */
       // if (module.hot) {
       //   module.hot.accept(${request}, () => {
@@ -524,14 +547,16 @@ export const compile = (
     cssFileList.unshift({
       filename: destCssFilename,
       code: mainCssCodeList.join("\n"),
+      // TODO: map: add for each main css code
     });
   }
 
   // resolve imports
   const resolvedJsCode = resolveImports(jsCode, cssImportList, options);
-
+  
   // assemble the final code
-  // TODO: merge source map
+  // TODO: map: + imports.lines
+  // TODO: map: merge template
   // TODO: add __file in dev mode
   // TODO: add hotReload(id, request) in dev mode
   // /* hot reload */

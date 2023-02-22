@@ -22,6 +22,10 @@ beforeEach(() => {
   document.body.innerHTML = "";
 });
 
+it.only("tests", async() => {
+  compile(fixtures.sourceMap, { filename: "source.vue" });
+})
+
 it("works", async () => {
   const {
     js: { filename: destFilename, code: jsCode },
