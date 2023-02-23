@@ -22,7 +22,7 @@ beforeEach(() => {
   document.body.innerHTML = "";
 });
 
-it.only("tests", async() => {
+it.skip("tests", async() => {
   compile(fixtures.sourceMap, { filename: "source.vue" });
 })
 
@@ -332,7 +332,9 @@ it("works with sass", async () => {
   const {
     js: { filename: destFilename, code: jsCode },
     css,
+    errors
   } = compile(fixtures.sass, { filename: "foo.vue", autoImportCss: true });
+  console.log(errors)
   expect(destFilename).toBe("foo.vue.js");
   expect(css.length).toBe(1);
   expect(css[0].code).toBeTruthy();

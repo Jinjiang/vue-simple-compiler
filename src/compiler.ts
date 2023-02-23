@@ -6,6 +6,7 @@ import {
   rewriteDefault,
   BindingMetadata,
   CompilerOptions as SFCCompilerOptions,
+  SFCDescriptor,
   SFCScriptBlock,
 } from "vue/compiler-sfc";
 // @ts-ignore
@@ -51,42 +52,21 @@ const getErrorResult = (errors: (string | Error)[], filename?: string): CompileR
   ),
 });
 
-/**
- * NOTICE: this API is experimental and may change without notice.
- * Compile a vue file into JavaScript and CSS.
- *
- * @param source the source code of the vue file
- * @param options the compilation options
- */
-export const compile = (
-  source: string,
-  options?: CompilerOptions
-): CompileResult => {
-  const errors: Error[] = [];
-  let map: RawSourceMap | undefined;
-  let templateMap: RawSourceMap | undefined;
+type Context = {
+  filename: string;
+  id: string;
+  destFilename: string;
+  options: CompilerOptions;
+  features: SFCFeatures;
+  addedProps: Array<[key: string, value: string]>;
+  addedCodeList: string[];
+  externalJsList: CompileResultExternalFile[];
+  externalCssList: CompileResultExternalFile[];
+  bindingMetadata: BindingMetadata;
+};
 
-  const filename = options?.filename ?? FILENAME;
-  const destFilename = getDestPath(filename);
-  const id = options?.filename ? hashId(filename + source) : ID;
-
-  // get the code structure
-  // - descriptor.template { map, type, attrs, content, loc, ast }
-  // - descriptor.script { map, type, attrs, content, loc, setup }
-  // - descriptor.scriptSetup  { type, attrs, content, loc, setup }
-  // - descriptor.style[] { map, type, attrs, content, loc }
-  // - descriptor { filename, source, cssVars, slotted, customBlocks, shouldForceReload }
-  const { descriptor, errors: mainCompilerErrors } = parse(source, { filename });
-  if (errors.length) {
-    return getErrorResult(mainCompilerErrors, destFilename);
-  }
-  const features: SFCFeatures = {};
-  const addedProps: Array<[key: string, value: string]> = [];
-  const addedCodeList: string[] = [];
-  const externalJsList: CompileResultExternalFile[] = [];
-  const externalCssList: CompileResultExternalFile[] = [];
-
-  // get the features
+const resolveFeatures = (descriptor: SFCDescriptor, context: Context) => {
+  const { filename, features, addedProps, addedCodeList, id } = context;
   const scriptLang =
     (descriptor.script && descriptor.script.lang) ||
     (descriptor.scriptSetup && descriptor.scriptSetup.lang) || 'js';
@@ -109,32 +89,78 @@ export const compile = (
     addedProps.push(["__cssModules", `cssModules`]);
     addedCodeList.push("const cssModules= {}");
   }
+};
+
+/**
+ * NOTICE: this API is experimental and may change without notice.
+ * Compile a vue file into JavaScript and CSS.
+ *
+ * @param source the source code of the vue file
+ * @param options the compilation options
+ */
+export const compile = (
+  source: string,
+  options?: CompilerOptions
+): CompileResult => {
+  const errors: Error[] = [];
+  let map: RawSourceMap | undefined;
+  let templateMap: RawSourceMap | undefined;
+
+  const context: Context = {
+    filename: options?.filename ?? FILENAME,
+    id: options?.filename ? hashId(options.filename + source) : ID,
+    destFilename: getDestPath(options?.filename ?? FILENAME),
+    options: options ?? {},
+    features: {},
+    addedProps: [],
+    addedCodeList: [],
+    externalJsList: [],
+    externalCssList: [],
+    bindingMetadata: {},
+  }
+
+  // get the code structure
+  // - descriptor.template { map, type, attrs, content, loc, ast }
+  // - descriptor.script { map, type, attrs, content, loc, setup }
+  // - descriptor.scriptSetup  { type, attrs, content, loc, setup }
+  // - descriptor.style[] { map, type, attrs, content, loc }
+  // - descriptor { filename, source, cssVars, slotted, customBlocks, shouldForceReload }
+  const { descriptor, errors: mainCompilerErrors } = parse(source, { filename: context.filename });
+  if (errors.length) {
+    return getErrorResult(mainCompilerErrors, context.destFilename);
+  }
+
+  // get the features
+  resolveFeatures(descriptor, context);
 
   // handle <script>
+  const scriptLang =
+    (descriptor.script && descriptor.script.lang) ||
+    (descriptor.scriptSetup && descriptor.scriptSetup.lang) || 'js';
   let jsCode = "";
   let jsBindings: BindingMetadata | undefined;
   if (descriptor.script || descriptor.scriptSetup) {
     if (scriptLang !== "js" && scriptLang !== "ts") {
-      return getErrorResult([new Error(`Unsupported script lang: ${scriptLang}`)], destFilename);
+      return getErrorResult([new Error(`Unsupported script lang: ${scriptLang}`)], context.destFilename);
     } else if (descriptor.scriptSetup?.src) {
-      return getErrorResult([new Error(`Unsupported external script setup: ${descriptor.scriptSetup.src}`)], destFilename);
+      return getErrorResult([new Error(`Unsupported external script setup: ${descriptor.scriptSetup.src}`)], context.destFilename);
     } else if (descriptor.script?.src) {
       if (!checkExtensionName(descriptor.script.src, [scriptLang])) {
-        return getErrorResult([new Error(`The extension name doesn't match the script language "${scriptLang}": ${descriptor.script.src}.`)], destFilename);
+        return getErrorResult([new Error(`The extension name doesn't match the script language "${scriptLang}": ${descriptor.script.src}.`)], context.destFilename);
       }
-      externalJsList.push({
+      context.externalJsList.push({
         filename: descriptor.script.src,
         query: {},
       });
       jsCode = `import ${COMP_ID} from ${JSON.stringify(descriptor.script.src)}`;
     } else {
       const expressionPlugins: SFCCompilerOptions["expressionPlugins"] =
-        features.hasTS ? ["typescript"] : undefined;
+        context.features.hasTS ? ["typescript"] : undefined;
       let scriptBlock: SFCScriptBlock;
       try {
         // TODO: env: add isProd
         scriptBlock = compileScript(descriptor, {
-          id,
+          id: context.id,
           inlineTemplate: true,
           templateOptions: {
             compilerOptions: {
@@ -144,17 +170,17 @@ export const compile = (
         });
         // debugBlock(scriptBlock)
       } catch (error) {
-        return getErrorResult([error as Error], destFilename);
+        return getErrorResult([error as Error], context.destFilename);
       }
       // basic source map
       map = scriptBlock.map;
-      if (features.hasTS) {
+      if (context.features.hasTS) {
         try {
           const transformed = transformTS(scriptBlock.content);
           map = chainSourceMap(map, transformed.sourceMap);
           jsCode = rewriteDefault(transformed.code, COMP_ID, expressionPlugins);
         } catch (error) {
-          return getErrorResult([error as Error], destFilename);
+          return getErrorResult([error as Error], context.destFilename);
         }
       } else {
         // No source map update technically.
@@ -170,23 +196,23 @@ export const compile = (
   let templateCode = "";
   if (descriptor.template && !descriptor.scriptSetup) {
     if (descriptor.template.lang && descriptor.template.lang !== "html") {
-      return getErrorResult([new Error(`Unsupported template lang: ${descriptor.template.lang}`)], destFilename);
+      return getErrorResult([new Error(`Unsupported template lang: ${descriptor.template.lang}`)], context.destFilename);
     }
     if (descriptor.template.src) {
-      return getErrorResult([new Error(`Unsupported external template: ${descriptor.template.src}.`)], destFilename);
+      return getErrorResult([new Error(`Unsupported external template: ${descriptor.template.src}.`)], context.destFilename);
     }
     // TODO: env: add isProd
     const templateResult = compileTemplate({
-      id: `data-v-${id}`,
-      filename,
+      id: `data-v-${context.id}`,
+      filename: context.filename,
       source: descriptor.template.content,
-      scoped: features.hasScoped,
+      scoped: context.features.hasScoped,
       compilerOptions: {
         bindingMetadata: jsBindings,
       },
     });
     if (templateResult.errors.length) {
-      return getErrorResult(templateResult.errors, destFilename);
+      return getErrorResult(templateResult.errors, context.destFilename);
     }
     // No source map update technically.
     templateCode = `${templateResult.code.replace(
@@ -228,9 +254,9 @@ export const compile = (
       }
       if (style.scoped) {
         externalCss.query.scoped = style.scoped.toString();
-        externalCss.query.id = id.toString();
+        externalCss.query.id = context.id.toString();
       }
-      externalCssList.push(externalCss);
+      context.externalCssList.push(externalCss);
     }
 
     let preprocessLang: 'scss' | 'sass' | undefined;
@@ -243,8 +269,8 @@ export const compile = (
     if (!style.src) {
       // TODO: env: add isProd
       const compiledStyle = compileStyle({
-        id,
-        filename,
+        id: context.id,
+        filename: context.filename,
         source: style.content,
         scoped: style.scoped,
         inMap: style.map,
@@ -266,7 +292,7 @@ export const compile = (
           // e.g. `./foo.css?module=true`
           ? getExternalCssPath(style.src, { module: true })
           // e.g. `./filename.vue.0.module.css`
-          : `./${getCssPath(filename, index)}`;
+          : `./${getCssPath(context.filename, index)}`;
 
       if (options?.autoImportCss) {
         // e.g. `import style0 from './foo.css?module=true';`
@@ -275,12 +301,12 @@ export const compile = (
       } else {
         // only for simple testing purposes
         // e.g. `const style0 = new Proxy({}, { get: (_, key) => key })`
-        addedCodeList.push(`const ${styleVar} = new Proxy({}, { get: (_, key) => key })`);
+        context.addedCodeList.push(`const ${styleVar} = new Proxy({}, { get: (_, key) => key })`);
       }
 
       const name = typeof style.module === "string" ? style.module : "$style";
       // e.g. `cssModules["style0"] = style0;`
-      addedCodeList.push(`cssModules["${name}"] = ${styleVar}`);
+      context.addedCodeList.push(`cssModules["${name}"] = ${styleVar}`);
       // TODO: hmr: add cssModules(name, styleVar, request) in dev mode
       // /* hot reload */
       // if (module.hot) {
@@ -292,7 +318,7 @@ export const compile = (
 
       if (!style.src) {
         cssFileList.push({
-          filename: getCssPath(filename, index),
+          filename: getCssPath(context.filename, index),
           code: destCssCode,
           sourceMap: styleMap,
         });
@@ -302,7 +328,7 @@ export const compile = (
         if (options?.autoImportCss) {
           // e.g. `./foo.css?id=123`
           // e.g. `./foo.css?scoped=true&id=123`
-          const cssPath = getExternalCssPath(style.src, { scoped: style.scoped, id });
+          const cssPath = getExternalCssPath(style.src, { scoped: style.scoped, id: context.id });
           // e.g. `import './foo.css?id=123';`
           // e.g. `import './foo.css?scoped=true&id=123';`
           cssImportList.push(genCssImport(cssPath));
@@ -318,11 +344,11 @@ export const compile = (
     return true;
   });
   if (errors.length) {
-    return getErrorResult(errors, destFilename);
+    return getErrorResult(errors, context.destFilename);
   }
 
   if (mainCssBlockList.length > 0) {
-    const destCssFilename = getCssPath(filename);
+    const destCssFilename = getCssPath(context.filename);
     cssImportList.unshift(genCssImport(`./${destCssFilename}`));
     const mainCssTransformedResult = bundleSourceMap(mainCssBlockList)
     cssFileList.unshift({
@@ -358,20 +384,20 @@ export const compile = (
     { code: cssImportList.join('\n') },
     { code: jsCode, sourceMap: map },
     { code: templateCode, sourceMap: templateMap },
-    { code: addedCodeList.join("\n") },
-    { code: addedProps.map(([key, value]) => `${COMP_ID}.${key} = ${value}`).join("\n") },
+    { code: context.addedCodeList.join("\n") },
+    { code: context.addedProps.map(([key, value]) => `${COMP_ID}.${key} = ${value}`).join("\n") },
     { code: `export default ${COMP_ID}` },
   ])
 
   const result: CompileResult = {
     js: {
-      filename: destFilename,
+      filename: context.destFilename,
       code: finalTransformedResult.code,
       sourceMap: finalTransformedResult.sourceMap,
     },
     css: cssFileList,
-    externalJs: externalJsList,
-    externalCss: externalCssList,
+    externalJs: context.externalJsList,
+    externalCss: context.externalCssList,
     errors,
   };
 

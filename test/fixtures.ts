@@ -176,7 +176,7 @@ export const sass = `
   </nav>
 </template>
 
-<style lang="sass">
+<style lang="scss">
 $font-stack: Helvetica, sans-serif;
 $primary-color: #333;
 
@@ -281,7 +281,7 @@ export const externalSass = `
   </nav>
 </template>
 
-<style lang="sass" src="./external.scss"></style>
+<style lang="scss" src="./external.scss"></style>
 `;
 
 export const externalSassAsset = `
