@@ -68,16 +68,61 @@ export const chainSourceMap = (oldMap: RawSourceMap | undefined, newMap: RawSour
 }
 
 export const bundleSourceMap = (list: FileInfo[]): FileInfo => {
-  // TODO:
-  list
-  return { code: '' }
+  if (list.length === 1) {
+    return list[0]
+  }
+
+  let code = ''
+  let lineOffset = 0
+  const generator = new SourceMapGenerator()
+
+  // for hack the source map
+  let firstSourceMap: RawSourceMap | undefined
+  const gen = generator as any
+
+  list.forEach(file => {
+    code += file.code + '\n'
+    if (file.sourceMap) {
+      firstSourceMap = firstSourceMap || file.sourceMap
+      const consumer = new SourceMapConsumer(file.sourceMap)
+      consumer.eachMapping(m => {
+        generator.addMapping({
+          generated: {
+            line: m.generatedLine + lineOffset,
+            column: m.generatedColumn
+          },
+          original: {
+            line: m.originalLine,
+            column: m.originalColumn
+          },
+          source: m.source,
+          name: m.name
+        })
+      })
+    }
+    lineOffset += file.code.split(/\r?\n/).length + 1
+  })
+
+  // hack the generator
+  if (firstSourceMap) {
+    const sources = firstSourceMap.sources || []
+    gen._sourceRoot = firstSourceMap.sourceRoot || ''
+    gen._file = firstSourceMap.file
+    gen._sources = {
+      toArray() {
+        return sources
+      }
+    }
+  }
+
+  return { code, sourceMap: gen.toJSON() }
 }
 
 /**
  * Shift the source map of a single source file.
  * It's used for converting the source map from a code block to the whole file, which has line offset in between.
  */
-export const shiftSingleSourceMap = (map: RawSourceMap, newSourceFile: string, offset: number): RawSourceMap => {
+export const shiftSourceMap = (map: RawSourceMap, newSourceFile: string, offset: number): RawSourceMap => {
   const consumer = new SourceMapConsumer(map)
   const generator = new SourceMapGenerator()
 
