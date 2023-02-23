@@ -334,7 +334,6 @@ it("works with sass", async () => {
     css,
     errors
   } = compile(fixtures.sass, { filename: "foo.vue", autoImportCss: true });
-  console.log(errors)
   expect(destFilename).toBe("foo.vue.js");
   expect(css.length).toBe(1);
   expect(css[0].code).toBeTruthy();
