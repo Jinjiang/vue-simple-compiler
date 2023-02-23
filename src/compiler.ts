@@ -1,11 +1,12 @@
+import type { CompilerOptions, CompileResult, Context } from "./types";
+
 import { parse } from "vue/compiler-sfc";
 // @ts-ignore
 import hashId from "hash-sum";
 
-import { CompilerOptions, getDestPath } from "./options";
+import { getDestPath } from "./options";
 import { COMP_ID, FILENAME, ID, resolveImports } from "./transform";
 import { bundleSourceMap } from "./map";
-import { CompileResult, Context } from "./types";
 import { resolveFeatures } from "./features";
 import { resolveScript } from "./script";
 import { resolveTemplate } from "./template";

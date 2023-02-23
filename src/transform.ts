@@ -1,8 +1,10 @@
+import type { SFCBlock } from "vue/compiler-sfc";
+import type { CompilerOptions, TransformResult } from "./types";
+
 import * as typescript from "sucrase";
 import { SourceMapConsumer } from "source-map";
-import { babelParse, MagicString, SFCBlock } from "vue/compiler-sfc";
-import { CompilerOptions, getDestPath } from "./options";
-import { FileInfo } from "./map";
+import { babelParse, MagicString } from "vue/compiler-sfc";
+import { getDestPath } from "./options";
 
 export const ID = "__demo__";
 export const FILENAME = "anonymous.vue";
@@ -19,8 +21,6 @@ export const debugBlock = ({ content, map }: SFCBlock) => {
   console.log((info as any)._mappings)
   console.log('-----------------')
 }
-
-export type TransformResult = FileInfo
 
 export const transformTS = (src: string) => {
   return typescript.transform(src, {

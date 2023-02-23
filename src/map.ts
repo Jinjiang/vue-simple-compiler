@@ -1,16 +1,9 @@
 // The version of source-map is v0.6.x since:
 // 1. source-map v0.7.x doesn't support sync APIs.
 // 2. vue/compiler-sfc also uses source-map v0.6.x.
-import { SourceMapConsumer, SourceMapGenerator, RawSourceMap } from "source-map";
+import type { RawSourceMap, FileInfo } from "./types";
 
-export type { RawSourceMap }
-
-export type FileInfo = {
-  code: string
-  // The "version" inside RawSourceMap is string type rather than number type
-  // since it's based on source-map v0.6.x.
-  sourceMap?: RawSourceMap | undefined
-}
+import { SourceMapConsumer, SourceMapGenerator } from "source-map";
 
 // https://github.com/vuejs/core/blob/main/packages/compiler-sfc/src/compileTemplate.ts
 export const chainSourceMap = (oldMap: RawSourceMap | undefined, newMap: RawSourceMap | undefined): RawSourceMap | undefined => {

@@ -1,6 +1,8 @@
-import { compileTemplate, SFCDescriptor } from "vue/compiler-sfc";
-import { COMP_ID, TransformResult } from "./transform";
-import { Context } from "./types";
+import type { SFCDescriptor } from "vue/compiler-sfc";
+import type { Context, TransformResult } from "./types";
+
+import { compileTemplate } from "vue/compiler-sfc";
+import { COMP_ID } from "./transform";
 
 export const resolveTemplate = (descriptor: SFCDescriptor, context: Context): TransformResult => {
   if (descriptor.template && !descriptor.scriptSetup) {

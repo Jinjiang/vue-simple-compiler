@@ -1,8 +1,9 @@
-import { compileStyle, SFCDescriptor } from "vue/compiler-sfc";
-import { bundleSourceMap, RawSourceMap } from "./map";
+import type { SFCDescriptor } from "vue/compiler-sfc";
+import type { CompileResultExternalFile, CompileResultFile, Context, TransformResult, RawSourceMap } from "./types";
+
+import { compileStyle } from "vue/compiler-sfc";
+import { bundleSourceMap } from "./map";
 import { checkExtensionName, genCssImport, getCssPath, getExternalCssPath } from "./options";
-import { TransformResult } from "./transform";
-import { CompileResultExternalFile, CompileResultFile, Context } from "./types";
 
 export const resolveStyles = (descriptor: SFCDescriptor, context: Context): { files: CompileResultFile[]; importList: string[] } => {
   const errors: Error[] = [];
