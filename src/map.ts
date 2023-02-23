@@ -111,6 +111,9 @@ export const bundleSourceMap = (list: FileInfo[]): FileInfo => {
     gen._sources = {
       toArray() {
         return sources
+      },
+      indexOf(source: string) {
+        return sources.indexOf(source)
       }
     }
   }
@@ -146,6 +149,9 @@ export const shiftSourceMap = (map: RawSourceMap, newSourceFile: string, offset:
   gen._sources = {
     toArray() {
       return [newSourceFile]
+    },
+    indexOf(source: string) {
+      return source === newSourceFile ? 0 : -1
     }
   }
   gen._sourceRoot = map.sourceRoot
