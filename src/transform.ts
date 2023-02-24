@@ -1,26 +1,10 @@
-import type { SFCBlock } from "vue/compiler-sfc";
 import type { CompilerOptions, TransformResult } from "./types";
 
 import * as typescript from "sucrase";
-import { SourceMapConsumer } from "source-map";
 import { babelParse, MagicString } from "vue/compiler-sfc";
+
+import { FILENAME } from "./constants";
 import { getDestPath } from "./options";
-
-export const ID = "__demo__";
-export const FILENAME = "anonymous.vue";
-
-export const COMP_ID = `__sfc__`;
-
-export const debugBlock = ({ content, map }: SFCBlock) => {
-  const info = new SourceMapConsumer(map!)
-  console.log('-----------------')
-  console.log(content)
-  console.log('-----------------')
-  console.log((info as any).sourcesContent[0])
-  console.log('-----------------')
-  console.log((info as any)._mappings)
-  console.log('-----------------')
-}
 
 export const transformTS = (src: string) => {
   return typescript.transform(src, {

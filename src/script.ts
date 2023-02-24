@@ -1,10 +1,12 @@
-import { SFCDescriptor, SFCScriptBlock, CompilerOptions as SFCCompilerOptions, } from "vue/compiler-sfc";
+import type { SFCDescriptor, SFCScriptBlock, CompilerOptions as SFCCompilerOptions, } from "vue/compiler-sfc";
 import type { TransformResult, Context } from "./types";
 
 import { compileScript, rewriteDefault } from "vue/compiler-sfc";
+
+import { COMP_ID } from "./constants";
 import { chainSourceMap } from "./map";
 import { checkExtensionName } from "./options";
-import { COMP_ID, transformTS } from "./transform";
+import { transformTS } from "./transform";
 
 export const resolveScript = (descriptor: SFCDescriptor, context: Context): TransformResult => {
   const scriptLang =

@@ -1,13 +1,11 @@
 import type { CompilerOptions, CompileResult, Context } from "./types";
 
 import { parse } from "vue/compiler-sfc";
-// @ts-ignore
-import hashId from "hash-sum";
 
-import { getDestPath } from "./options";
-import { COMP_ID, FILENAME, ID, resolveImports } from "./transform";
+import { COMP_ID, FILENAME } from "./constants";
+import { resolveImports } from "./transform";
 import { bundleSourceMap } from "./map";
-import { resolveFeatures } from "./features";
+import { createContext, resolveFeatures } from "./context";
 import { resolveScript } from "./script";
 import { resolveTemplate } from "./template";
 import { resolveStyles } from "./style";
@@ -33,18 +31,7 @@ export const compile = (
   source: string,
   options?: CompilerOptions
 ): CompileResult => {
-  const context: Context = {
-    filename: options?.filename ?? FILENAME,
-    id: options?.filename ? hashId(options.filename + source) : ID,
-    destFilename: getDestPath(options?.filename ?? FILENAME),
-    options: options ?? {},
-    features: {},
-    addedProps: [],
-    addedCodeList: [],
-    externalJsList: [],
-    externalCssList: [],
-    bindingMetadata: undefined,
-  }
+  const context: Context = createContext(source, options);
 
   // get the code structure
   // - descriptor.template { map, type, attrs, content, loc, ast }

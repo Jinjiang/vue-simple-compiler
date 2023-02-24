@@ -2,6 +2,7 @@ import type { SFCDescriptor } from "vue/compiler-sfc";
 import type { CompileResultExternalFile, CompileResultFile, Context, TransformResult, RawSourceMap } from "./types";
 
 import { compileStyle } from "vue/compiler-sfc";
+
 import { bundleSourceMap } from "./map";
 import { checkExtensionName, genCssImport, getCssPath, getExternalCssPath } from "./options";
 
