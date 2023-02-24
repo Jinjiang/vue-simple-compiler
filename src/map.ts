@@ -14,7 +14,10 @@ export type FileInfo = {
   sourceMap?: RawSourceMap | undefined
 }
 
-// https://github.com/vuejs/core/blob/main/packages/compiler-sfc/src/compileTemplate.ts
+/**
+ * Chain source maps of two code blocks.
+ * credit: https://github.com/vuejs/core/blob/main/packages/compiler-sfc/src/compileTemplate.ts
+ */
 export const chainSourceMap = (oldMap: RawSourceMap | undefined, newMap: RawSourceMap | undefined): RawSourceMap | undefined => {
   if (!oldMap) return newMap
   if (!newMap) return oldMap
@@ -43,9 +46,7 @@ export const chainSourceMap = (oldMap: RawSourceMap | undefined, newMap: RawSour
         column: m.generatedColumn
       },
       original: {
-        line: origPosInOldMap.line ?? 0, // map line
-        // use current column, since the oldMap produced by @vue/compiler-sfc
-        // does not
+        line: origPosInOldMap.line ?? 0,
         column: m.originalColumn
       },
       source: origPosInOldMap.source,
@@ -69,6 +70,11 @@ export const chainSourceMap = (oldMap: RawSourceMap | undefined, newMap: RawSour
   return gen.toJSON()
 }
 
+/**
+ * Bundle source maps of multiple code blocks into one.
+ * - assume source roots of all the blocks are the same
+ * - pick the generated file name from the first block
+ */
 export const bundleSourceMap = (list: FileInfo[]): FileInfo => {
   if (list.length === 1) {
     return list[0]
@@ -80,13 +86,15 @@ export const bundleSourceMap = (list: FileInfo[]): FileInfo => {
 
   // for hack the source map
   let firstSourceMap: RawSourceMap | undefined
+  const sourceFileSet = new Set<string>()
   const gen = generator as any
 
-  list.forEach(file => {
-    code += file.code + '\n'
-    if (file.sourceMap) {
-      firstSourceMap = firstSourceMap || file.sourceMap
-      const consumer = new SourceMapConsumer(file.sourceMap)
+  list.forEach(block => {
+    code += block.code + '\n'
+    if (block.sourceMap) {
+      firstSourceMap = firstSourceMap || block.sourceMap
+      block.sourceMap.sources.forEach(sourceFile => sourceFileSet.add(sourceFile))
+      const consumer = new SourceMapConsumer(block.sourceMap)
       consumer.eachMapping(m => {
         generator.addMapping({
           generated: {
@@ -102,12 +110,12 @@ export const bundleSourceMap = (list: FileInfo[]): FileInfo => {
         })
       })
     }
-    lineOffset += file.code.split(/\r?\n/).length + 1
+    lineOffset += block.code.split(/\r?\n/).length + 1
   })
 
   // hack the generator
   if (firstSourceMap) {
-    const sources = firstSourceMap.sources || []
+    const sources = Array.from(sourceFileSet)
     gen._sourceRoot = firstSourceMap.sourceRoot || ''
     gen._file = firstSourceMap.file
     gen._sources = {
@@ -125,13 +133,16 @@ export const bundleSourceMap = (list: FileInfo[]): FileInfo => {
 
 /**
  * Shift the source map of a single source file.
- * It's used for converting the source map from a code block to the whole file, which has line offset in between.
+ * It's used for adjusting the source map when you generate it from a block of the whole file, which causes line offset.
  */
-export const shiftSourceMap = (map: RawSourceMap, newSourceFile: string, offset: number): RawSourceMap => {
+export const shiftSourceMap = (map: RawSourceMap, offset: number, newFileMap?: Record<string, string>): RawSourceMap => {
   const consumer = new SourceMapConsumer(map)
   const generator = new SourceMapGenerator()
+  const sourceFileSet = new Set<string>()
 
   consumer.eachMapping(m => {
+    const source = newFileMap![m.source] || m.source
+    sourceFileSet.add(source)
     generator.addMapping({
       generated: {
         line: m.generatedLine,
@@ -141,19 +152,20 @@ export const shiftSourceMap = (map: RawSourceMap, newSourceFile: string, offset:
         line: m.originalLine,
         column: m.originalColumn + offset
       },
-      source: newSourceFile,
+      source,
       name: m.name
     })
   })
 
   // hack the generator
   const gen = generator as any
+  const sourceFiles = Array.from(sourceFileSet)
   gen._sources = {
     toArray() {
-      return [newSourceFile]
+      return sourceFiles
     },
     indexOf(source: string) {
-      return source === newSourceFile ? 0 : -1
+      return sourceFiles.indexOf(source)
     }
   }
   gen._sourceRoot = map.sourceRoot
