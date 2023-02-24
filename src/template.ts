@@ -4,10 +4,11 @@ import type { Context, TransformResult } from "./types";
 import { compileTemplate } from "vue/compiler-sfc";
 
 import { COMP_ID } from "./constants";
+import { shiftSourceMap } from "./map";
 
 export const resolveTemplate = (
   descriptor: SFCDescriptor,
-  context: Context
+  context: Context,
 ): {
   result?: TransformResult;
   errors?: Error[];
@@ -48,10 +49,12 @@ export const resolveTemplate = (
       `\n$1 render`
     )}\n${COMP_ID}.render = render`;
 
+    const shiftedMap = shiftSourceMap(templateResult.map!, descriptor.template?.loc.start?.line! - 1)
+
     return {
       result: {
         code: templateCode,
-        sourceMap: templateResult.map,
+        sourceMap: shiftedMap,
       },
     };
   }

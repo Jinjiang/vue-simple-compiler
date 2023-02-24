@@ -14,6 +14,49 @@ export type FileInfo = {
   sourceMap?: RawSourceMap | undefined
 }
 
+export const getConsumerSources = (consumer: SourceMapConsumer): string[] => {
+  // source-map's type definition is incomplete
+  const con = consumer as any
+  return con.sources
+}
+
+export const getGeneratorSources = (generator: SourceMapGenerator): string[] => {
+  // source-map's type definition is incomplete
+  const gen = generator as any
+  return gen._sources.toArray()
+}
+
+export const hackGeneratorProps = (generator: SourceMapGenerator, props: Partial<{
+  file: string
+  sourceRoot: string
+  sources: string[]
+}>) => {
+  // source-map's type definition is incomplete
+  const gen = generator as any
+  if (props.file) {
+    gen._file = props.file
+  }
+  if (props.sourceRoot) {
+    gen._sourceRoot = props.sourceRoot
+  }
+  if (props.sources) {
+    gen._sources = {
+      toArray() {
+        return props.sources!
+      },
+      indexOf(source: string) {
+        return props.sources!.indexOf(source)
+      }
+    }
+  }
+}
+
+const genJSON = (generator: SourceMapGenerator): RawSourceMap => {
+  // source-map's type definition is incomplete
+  const gen = generator as any
+  return gen.toJSON()
+}
+
 /**
  * Chain source maps of two code blocks.
  * credit: https://github.com/vuejs/core/blob/main/packages/compiler-sfc/src/compileTemplate.ts
@@ -54,20 +97,14 @@ export const chainSourceMap = (oldMap: RawSourceMap | undefined, newMap: RawSour
     })
   })
 
-  // source-map's type definition is incomplete
-  const gen = mergedMapGenerator as any
-  ;(oldMapConsumer as any).sources.forEach((sourceFile: string) => {
-    gen._sources.add(sourceFile)
-    const sourceContent = oldMapConsumer.sourceContentFor(sourceFile)
-    if (sourceContent != null) {
-      mergedMapGenerator.setSourceContent(sourceFile, sourceContent)
-    }
+  const sourceFileSet = new Set<string>(getGeneratorSources(mergedMapGenerator))
+  getConsumerSources(oldMapConsumer).forEach(sourceFile => sourceFileSet.add(sourceFile))
+  hackGeneratorProps(mergedMapGenerator, {
+    file: oldMap.file,
+    sourceRoot: oldMap.sourceRoot,
+    sources: Array.from(sourceFileSet)
   })
-
-  gen._sourceRoot = oldMap.sourceRoot
-  gen._file = oldMap.file
-
-  return gen.toJSON()
+  return genJSON(mergedMapGenerator)
 }
 
 /**
@@ -87,7 +124,7 @@ export const bundleSourceMap = (list: FileInfo[]): FileInfo => {
   // for hack the source map
   let firstSourceMap: RawSourceMap | undefined
   const sourceFileSet = new Set<string>()
-  const gen = generator as any
+  // const gen = generator as any
 
   list.forEach(block => {
     code += block.code + '\n'
@@ -110,25 +147,19 @@ export const bundleSourceMap = (list: FileInfo[]): FileInfo => {
         })
       })
     }
-    lineOffset += block.code.split(/\r?\n/).length + 1
+    lineOffset += block.code.split(/\r?\n/).length
   })
 
-  // hack the generator
   if (firstSourceMap) {
     const sources = Array.from(sourceFileSet)
-    gen._sourceRoot = firstSourceMap.sourceRoot || ''
-    gen._file = firstSourceMap.file
-    gen._sources = {
-      toArray() {
-        return sources
-      },
-      indexOf(source: string) {
-        return sources.indexOf(source)
-      }
-    }
+    hackGeneratorProps(generator, {
+      file: firstSourceMap.file,
+      sourceRoot: firstSourceMap.sourceRoot,
+      sources
+    })
   }
 
-  return { code, sourceMap: gen.toJSON() }
+  return { code, sourceMap: genJSON(generator) }
 }
 
 /**
@@ -141,7 +172,7 @@ export const shiftSourceMap = (map: RawSourceMap, offset: number, newFileMap?: R
   const sourceFileSet = new Set<string>()
 
   consumer.eachMapping(m => {
-    const source = newFileMap![m.source] || m.source
+    const source = (newFileMap || {})[m.source] || m.source
     sourceFileSet.add(source)
     generator.addMapping({
       generated: {
@@ -149,27 +180,19 @@ export const shiftSourceMap = (map: RawSourceMap, offset: number, newFileMap?: R
         column: m.generatedColumn
       },
       original: {
-        line: m.originalLine,
-        column: m.originalColumn + offset
+        line: m.originalLine + offset,
+        column: m.originalColumn
       },
       source,
       name: m.name
     })
   })
 
-  // hack the generator
-  const gen = generator as any
-  const sourceFiles = Array.from(sourceFileSet)
-  gen._sources = {
-    toArray() {
-      return sourceFiles
-    },
-    indexOf(source: string) {
-      return sourceFiles.indexOf(source)
-    }
-  }
-  gen._sourceRoot = map.sourceRoot
-  gen._file = map.file
+  hackGeneratorProps(generator, {
+    file: map.file,
+    sourceRoot: map.sourceRoot,
+    sources: Array.from(sourceFileSet)
+  })
 
-  return gen.toJSON()
+  return genJSON(generator)
 }

@@ -1,3 +1,4 @@
+import type { RawSourceMap } from "source-map";
 import type { CompilerOptions, CompileResult, Context } from "./types";
 
 import { parse } from "vue/compiler-sfc";
@@ -56,6 +57,15 @@ export const compile = (
     ? resolveImports(scriptResult.code, context.options)
     : scriptResult.code;
 
+  const initialSourceMap: RawSourceMap = {
+    version: '3',
+    file: context.destFilename,
+    sources: [context.filename],
+    names: [],
+    mappings: '',
+    sourcesContent: [source],
+  };
+
   // assemble the final code
   // TODO: add __file in dev mode
   // TODO: add hotReload(id, request) in dev mode
@@ -75,7 +85,7 @@ export const compile = (
   // }
 
   const finalTransformedResult = bundleSourceMap([
-    { code: cssImportList.join('\n') },
+    { code: cssImportList.join('\n'), sourceMap: initialSourceMap },
     { code: jsCode, sourceMap: scriptResult.sourceMap },
     { code: templateResult.code, sourceMap: templateResult.sourceMap },
     { code: context.addedCodeList.join("\n") },
