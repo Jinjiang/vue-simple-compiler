@@ -6,7 +6,7 @@ import { compileStyle } from "vue/compiler-sfc";
 import { bundleSourceMap } from "./map";
 import { checkExtensionName, genCssImport, getCssPath, getExternalCssPath } from "./options";
 
-export const resolveStyles = (descriptor: SFCDescriptor, context: Context): { files: CompileResultFile[]; importList: string[] } => {
+export const resolveStyles = (descriptor: SFCDescriptor, context: Context): { files?: CompileResultFile[]; importList?: string[]; errors?: Error[] } => {
   const errors: Error[] = [];
   const cssImportList: string[] = [];
   const cssFileList: CompileResultFile[] = [];
@@ -129,7 +129,7 @@ export const resolveStyles = (descriptor: SFCDescriptor, context: Context): { fi
     return true;
   });
   if (errors.length) {
-    throw errors;
+    return { errors };
   }
 
   if (mainCssBlockList.length > 0) {

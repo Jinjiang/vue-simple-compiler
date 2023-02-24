@@ -5,13 +5,29 @@ import { compileTemplate } from "vue/compiler-sfc";
 
 import { COMP_ID } from "./constants";
 
-export const resolveTemplate = (descriptor: SFCDescriptor, context: Context): TransformResult => {
+export const resolveTemplate = (
+  descriptor: SFCDescriptor,
+  context: Context
+): {
+  result?: TransformResult;
+  errors?: Error[];
+} => {
   if (descriptor.template && !descriptor.scriptSetup) {
     if (descriptor.template.lang && descriptor.template.lang !== "html") {
-      throw new Error(`Unsupported template lang: ${descriptor.template.lang}`)
+      return {
+        errors: [
+          new Error(`Unsupported template lang: ${descriptor.template.lang}`),
+        ],
+      };
     }
     if (descriptor.template.src) {
-      throw new Error(`Unsupported external template: ${descriptor.template.src}.`)
+      return {
+        errors: [
+          new Error(
+            `Unsupported external template: ${descriptor.template.src}.`
+          ),
+        ],
+      };
     }
     // TODO: env: add isProd
     const templateResult = compileTemplate({
@@ -33,10 +49,12 @@ export const resolveTemplate = (descriptor: SFCDescriptor, context: Context): Tr
     )}\n${COMP_ID}.render = render`;
 
     return {
-      code: templateCode,
-      sourceMap: templateResult.map,
-    }
+      result: {
+        code: templateCode,
+        sourceMap: templateResult.map,
+      },
+    };
   }
 
-  return { code: "" };
-}
+  return { result: { code: "" } };
+};
