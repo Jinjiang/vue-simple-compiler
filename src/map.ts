@@ -98,11 +98,20 @@ export const chainSourceMap = (oldMap: RawSourceMap | undefined, newMap: RawSour
   })
 
   const sourceFileSet = new Set<string>(getGeneratorSources(mergedMapGenerator))
-  getConsumerSources(oldMapConsumer).forEach(sourceFile => sourceFileSet.add(sourceFile))
+  getConsumerSources(oldMapConsumer).forEach(sourceFile => {
+    sourceFileSet.add(sourceFile)
+  })
+  const sources = Array.from(sourceFileSet)
   hackGeneratorProps(mergedMapGenerator, {
     file: oldMap.file,
     sourceRoot: oldMap.sourceRoot,
-    sources: Array.from(sourceFileSet)
+    sources
+  })
+  sources.forEach(sourceFile => {
+    const sourceContent = oldMapConsumer.sourceContentFor(sourceFile)
+    if (sourceContent) {
+      mergedMapGenerator.setSourceContent(sourceFile, sourceContent)
+    }
   })
   return genJSON(mergedMapGenerator)
 }
@@ -124,13 +133,19 @@ export const bundleSourceMap = (list: FileInfo[]): FileInfo => {
   // for hack the source map
   let firstSourceMap: RawSourceMap | undefined
   const sourceFileSet = new Set<string>()
+  const sourceFileMap = new Map<string, string>()
   // const gen = generator as any
 
   list.forEach(block => {
     code += block.code + '\n'
     if (block.sourceMap) {
       firstSourceMap = firstSourceMap || block.sourceMap
-      block.sourceMap.sources.forEach(sourceFile => sourceFileSet.add(sourceFile))
+      block.sourceMap.sources.forEach((sourceFile, index) => {
+        sourceFileSet.add(sourceFile)
+        if (block!.sourceMap!.sourcesContent![index] && !sourceFileMap.has(sourceFile)) {
+          sourceFileMap.set(sourceFile, block!.sourceMap!.sourcesContent![index])
+        }
+      })
       const consumer = new SourceMapConsumer(block.sourceMap)
       consumer.eachMapping(m => {
         generator.addMapping({
@@ -157,6 +172,12 @@ export const bundleSourceMap = (list: FileInfo[]): FileInfo => {
       sourceRoot: firstSourceMap.sourceRoot,
       sources
     })
+    sources.forEach(sourceFile => {
+      const sourceContent = sourceFileMap.get(sourceFile)
+      if (sourceContent) {
+        generator.setSourceContent(sourceFile, sourceContent)
+      }
+    })
   }
 
   return { code, sourceMap: genJSON(generator) }
@@ -166,14 +187,18 @@ export const bundleSourceMap = (list: FileInfo[]): FileInfo => {
  * Shift the source map of a single source file.
  * It's used for adjusting the source map when you generate it from a block of the whole file, which causes line offset.
  */
-export const shiftSourceMap = (map: RawSourceMap, offset: number, newFileMap?: Record<string, string>): RawSourceMap => {
+export const shiftSourceMap = (map: RawSourceMap, offset: number, newFileMap?: Record<string, { name: string; code: string }>): RawSourceMap => {
   const consumer = new SourceMapConsumer(map)
   const generator = new SourceMapGenerator()
   const sourceFileSet = new Set<string>()
+  const sourceFileMap = new Map<string, string>()
 
   consumer.eachMapping(m => {
-    const source = (newFileMap || {})[m.source] || m.source
-    sourceFileSet.add(source)
+    const source = (newFileMap || {})[m.source] || { name: m.source, code: consumer.sourceContentFor(m.source) || '' }
+    sourceFileSet.add(source.name)
+    if (source.code) {
+      sourceFileMap.set(source.name, source.code)
+    }
     generator.addMapping({
       generated: {
         line: m.generatedLine,
@@ -183,7 +208,7 @@ export const shiftSourceMap = (map: RawSourceMap, offset: number, newFileMap?: R
         line: m.originalLine + offset,
         column: m.originalColumn
       },
-      source,
+      source: source.name,
       name: m.name
     })
   })
@@ -192,6 +217,12 @@ export const shiftSourceMap = (map: RawSourceMap, offset: number, newFileMap?: R
     file: map.file,
     sourceRoot: map.sourceRoot,
     sources: Array.from(sourceFileSet)
+  })
+  Array.from(sourceFileSet).forEach(sourceFile => {
+    const sourceContent = sourceFileMap.get(sourceFile)
+    if (sourceContent) {
+      generator.setSourceContent(sourceFile, sourceContent)
+    }
   })
 
   return genJSON(generator)
