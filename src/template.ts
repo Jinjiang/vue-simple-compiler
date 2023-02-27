@@ -4,7 +4,6 @@ import type { Context, TransformResult } from "./types";
 import { compileTemplate } from "vue/compiler-sfc";
 
 import { COMP_ID } from "./constants";
-import { shiftSourceMap } from "./map";
 
 export const resolveTemplate = (
   descriptor: SFCDescriptor,
@@ -39,22 +38,22 @@ export const resolveTemplate = (
       compilerOptions: {
         bindingMetadata: context.bindingMetadata,
       },
+      inMap: descriptor.template.map,
     });
     if (templateResult.errors.length) {
       throw templateResult.errors;
     }
+
     // No source map update technically.
     const templateCode = `${templateResult.code.replace(
       /\nexport (function|const) (render|ssrRender)/,
       `\n$1 render`
     )}\n${COMP_ID}.render = render`;
 
-    const shiftedMap = shiftSourceMap(templateResult.map!, descriptor.template?.loc.start?.line! - 1)
-
     return {
       result: {
         code: templateCode,
-        sourceMap: shiftedMap,
+        sourceMap: templateResult.map,
       },
     };
   }

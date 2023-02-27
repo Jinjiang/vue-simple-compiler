@@ -60,6 +60,9 @@ export const resolveStyles = (descriptor: SFCDescriptor, context: Context): { fi
         scoped: style.scoped,
         inMap: style.map,
         preprocessLang,
+        preprocessOptions: (preprocessLang === 'scss' || preprocessLang === 'sass') ? {
+          omitSourceMapUrl: true
+        } : undefined,
       });
       if (compiledStyle.errors.length) {
         errors.push(...compiledStyle.errors);

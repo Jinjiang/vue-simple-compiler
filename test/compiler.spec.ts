@@ -30,15 +30,12 @@ it.skip("manually test for source map", async () => {
   const {
     js: { filename: destFilename, code: jsCode, sourceMap },
     css,
-    externalJs,
-    externalCss,
-  } = compile(fixtures.mvp);
-  expect(destFilename).toBe("anonymous.vue.js");
-  expect(css.length).toBe(1);
-  expect(externalJs.length).toBe(0);
-  expect(externalCss.length).toBe(0);
-  expect(css[0].filename).toBe("anonymous.vue.css");
-  expect(css[0].code).toBeTruthy();
+  } = compile(fixtures.sass, {
+    filename: "foo.vue",
+    autoImportCss: true,
+    autoResolveImports: true
+  });
+  expect(destFilename).toBe("foo.vue.js");
   const dir = join(testDistDir, "source-map");
   const modulePath = join(dir, destFilename);
   if (existsSync(dir)) {
@@ -46,14 +43,11 @@ it.skip("manually test for source map", async () => {
   }
   ensureDirSync(dir);
   writeFileSync(modulePath, jsCode);
-  writeFileSync(join(dir, 'anonymous.vue.map'), JSON.stringify(sourceMap));
-  writeFileSync(join(dir, css[0].filename), css[0].code);
-  writeFileSync(join(dir, 'anonymous.vue.css.map'), JSON.stringify(css[0].sourceMap));
-  const HelloWorld = (await import(modulePath)).default;
-  const result = render(defineComponent(HelloWorld));
-  expect(result.html().trim().replace(/\n/g, "")).toBe(
-    "<h1>Hello World!</h1><input>"
-  );
+  writeFileSync(join(dir, 'foo.vue.js.map'), JSON.stringify(sourceMap));
+  if (css[0]) {
+    writeFileSync(join(dir, css[0].filename), css[0].code);
+    writeFileSync(join(dir, 'foo.vue.css.map'), JSON.stringify(css[0].sourceMap));
+  }
 });
 
 it("works", async () => {
