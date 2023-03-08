@@ -1,11 +1,13 @@
 export type FileResolver = (filename: string) => string;
 
 export type CompilerOptions = {
+  root?: string;
   filename?: string;
   resolver?: FileResolver;
   autoImportCss?: boolean;
   autoResolveImports?: boolean;
   isProd?: boolean;
+  hmr?: boolean;
 };
 
 // - plain css -> filename.vue.css

@@ -4,10 +4,13 @@ import type { CompileResultExternalFile, CompilerOptions } from "./types";
 // @ts-ignore
 import hashId from "hash-sum";
 
-import { FILENAME, ID } from "./constants";
+import { FILENAME, ROOT, ID } from "./constants";
 import { getDestPath } from "./options";
 
 export type Context = {
+  isProd: boolean;
+  hmr: boolean;
+  root: string;
   filename: string;
   id: string;
   destFilename: string;
@@ -53,6 +56,9 @@ export const resolveFeatures = (descriptor: SFCDescriptor, context: Context) => 
     addedProps.push(["__cssModules", `cssModules`]);
     addedCodeList.push("const cssModules= {}");
   }
+  if (!context.isProd) {
+    addedProps.push(["__file", JSON.stringify(filename.replace(/\\/g, '/'))]);
+  }
 };
 
 export const createContext = (source: string, options?: CompilerOptions): Context => {
@@ -60,6 +66,9 @@ export const createContext = (source: string, options?: CompilerOptions): Contex
   const destFilename = getDestPath(options?.filename ?? FILENAME);
   const id = options?.filename ? hashId(options.filename + source) : ID;
   const context: Context = {
+    isProd: options?.isProd ?? false,
+    hmr: options?.hmr ?? false,
+    root: options?.root ?? ROOT,
     filename,
     id,
     destFilename,

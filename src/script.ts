@@ -65,7 +65,6 @@ export const resolveScript = (
         : undefined;
       let scriptBlock: SFCScriptBlock;
       try {
-        // TODO: env: add isProd
         scriptBlock = compileScript(descriptor, {
           id: context.id,
           inlineTemplate: true,
@@ -74,6 +73,7 @@ export const resolveScript = (
               expressionPlugins,
             },
           },
+          isProd: context.isProd,
         });
       } catch (error) {
         return { errors: [error as Error] };

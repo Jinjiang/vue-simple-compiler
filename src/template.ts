@@ -29,7 +29,7 @@ export const resolveTemplate = (
         ],
       };
     }
-    // TODO: env: add isProd
+
     const templateResult = compileTemplate({
       id: `data-v-${context.id}`,
       filename: context.filename,
@@ -39,6 +39,7 @@ export const resolveTemplate = (
         bindingMetadata: context.bindingMetadata,
       },
       inMap: descriptor.template.map,
+      isProd: context.isProd,
     });
     if (templateResult.errors.length) {
       throw templateResult.errors;
