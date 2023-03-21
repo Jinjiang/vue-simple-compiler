@@ -12,7 +12,7 @@ export const resolveStyles = (descriptor: SFCDescriptor, context: Context): { fi
   const cssFileList: CompileResultFile[] = [];
   const mainCssBlockList: TransformResult[] = [];
   descriptor.styles.every((style, index) => {
-    if (style.lang && style.lang !== "css" && style.lang !== "scss" && style.lang !== "sass") {
+    if (style.lang && style.lang !== "css" && style.lang !== "scss" && style.lang !== "sass"&& style.lang !== "less") {
       errors.push(new Error(`Unsupported style lang: ${style.lang}.`));
       return false;
     } else if (style.src) {
@@ -30,6 +30,13 @@ export const resolveStyles = (descriptor: SFCDescriptor, context: Context): { fi
         errors.push(new Error(`The extension name doesn't match the style language "scss/sass": ${style.src}.`));
         return false;
       }
+      if (
+        (style.lang === 'less') &&
+        !checkExtensionName(style.src, ["less"])
+      ) {
+        errors.push(new Error(`The extension name doesn't match the style language "less": ${style.src}.`));
+        return false;
+      }
       const externalCss: CompileResultExternalFile = {
         filename: style.src,
         query: {},
@@ -44,8 +51,8 @@ export const resolveStyles = (descriptor: SFCDescriptor, context: Context): { fi
       context.externalCssList.push(externalCss);
     }
 
-    let preprocessLang: 'scss' | 'sass' | undefined;
-    if (style.lang === 'scss' || style.lang === 'sass') {
+    let preprocessLang: 'scss' | 'sass' | 'less' | undefined;
+    if (style.lang === 'scss' || style.lang === 'sass' || style.lang === 'less') {
       preprocessLang = style.lang;
     }
 
