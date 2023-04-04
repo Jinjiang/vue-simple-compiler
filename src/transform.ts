@@ -9,7 +9,7 @@ import { getDestPath } from "./options";
 export const transformTS = (src: string) => {
   return typescript.transform(src, {
     transforms: ["typescript"],
-  }) as TransformResult;
+  }) as unknown as TransformResult;
 };
 
 /**
