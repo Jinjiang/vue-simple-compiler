@@ -130,7 +130,7 @@ const {
   // externalJs,
   // externalCss,
   // errors
-} = await compile(code, {
+} = compile(code, {
   filename: 'foo.vue',
   autoImportCss: true,
   autoResolveImports: true,
