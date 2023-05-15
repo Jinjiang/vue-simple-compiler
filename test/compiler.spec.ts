@@ -519,6 +519,75 @@ it("works with external sass via @use", async () => {
   expect(result.html()).toMatch("Content goes here");
 });
 
+it("works with external sass via @use a npm package file", async () => {
+  const dir = join(testDistDir, "external-sass3");
+  if (existsSync(dir)) {
+    rmSync(dir, { recursive: true });
+  }
+  ensureDirSync(dir);
+  ensureDirSync(join('node_modules', 'foo'))
+  writeFileSync(join('node_modules', 'foo', './package.json'), '{}');
+  writeFileSync(join('node_modules', 'foo', './external3.scss'), fixtures.externalSassAsset3);
+  const {
+    js: { filename: destFilename, code: jsCode },
+    css,
+    externalJs,
+    externalCss,
+  } = compile(fixtures.externalSass3, {
+    filename: "foo.vue",
+    autoImportCss: true,
+    root: resolve(dir)
+  });
+  expect(destFilename).toBe("foo.vue.js");
+  expect(css.length).toBe(1);
+  expect(externalJs.length).toBe(0);
+  expect(externalCss.length).toBe(0);
+  const modulePath = join(dir, destFilename);
+  writeFileSync(modulePath, jsCode);
+  writeFileSync(join(dir, css[0].filename), css[0].code);
+  const HelloWorld = (await import(modulePath)).default;
+  const result = render(defineComponent(HelloWorld));
+  expect(result.html()).toMatch("Content goes here");
+  afterAll(() => {
+    rmSync(join('node_modules', 'foo'), { recursive: true });
+  })
+});
+
+it("works with external sass via @use a npm package file", async () => {
+  const dir = join(testDistDir, "external-sass4");
+  if (existsSync(dir)) {
+    rmSync(dir, { recursive: true });
+  }
+  ensureDirSync(dir);
+  ensureDirSync(join('node_modules', '@bar'))
+  ensureDirSync(join('node_modules', '@bar', 'baz'))
+  writeFileSync(join('node_modules', '@bar', 'baz', './package.json'), '{}');
+  writeFileSync(join('node_modules', '@bar', 'baz', './external4.scss'), fixtures.externalSassAsset4);
+  const {
+    js: { filename: destFilename, code: jsCode },
+    css,
+    externalJs,
+    externalCss,
+  } = compile(fixtures.externalSass4, {
+    filename: "foo.vue",
+    autoImportCss: true,
+    root: resolve(dir)
+  });
+  expect(destFilename).toBe("foo.vue.js");
+  expect(css.length).toBe(1);
+  expect(externalJs.length).toBe(0);
+  expect(externalCss.length).toBe(0);
+  const modulePath = join(dir, destFilename);
+  writeFileSync(modulePath, jsCode);
+  writeFileSync(join(dir, css[0].filename), css[0].code);
+  const HelloWorld = (await import(modulePath)).default;
+  const result = render(defineComponent(HelloWorld));
+  expect(result.html()).toMatch("Content goes here");
+  afterAll(() => {
+    rmSync(join('node_modules', '@bar', 'baz'), { recursive: true });
+  })
+});
+
 it("works with external scoped css", async () => {
   const {
     js: { filename: destFilename, code: jsCode },

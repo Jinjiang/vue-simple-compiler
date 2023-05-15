@@ -334,6 +334,58 @@ $radius: 3px;
 }
 `
 
+export const externalSass3 = `
+<template>
+  <div class="container">
+    Content goes here
+  </div>
+</template>
+
+<style scoped lang="scss">
+@use "foo/external3.scss" as c;
+
+.container {
+  @include c.rounded;
+  padding: 5px + c.$radius;
+  background-color: silver;
+}
+</style>
+`;
+
+export const externalSassAsset3 = `
+$radius: 3px;
+
+@mixin rounded {
+  border-radius: $radius;
+}
+`
+
+export const externalSass4 = `
+<template>
+  <div class="container">
+    Content goes here
+  </div>
+</template>
+
+<style scoped lang="scss">
+@use "@bar/baz/external4.scss" as c;
+
+.container {
+  @include c.rounded;
+  padding: 5px + c.$radius;
+  background-color: silver;
+}
+</style>
+`;
+
+export const externalSassAsset4 = `
+$radius: 3px;
+
+@mixin rounded {
+  border-radius: $radius;
+}
+`
+
 export const externalScoped = `
 <script>
 import { ref } from 'vue'

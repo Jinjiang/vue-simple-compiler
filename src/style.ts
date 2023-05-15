@@ -5,6 +5,46 @@ import { compileStyle } from "vue/compiler-sfc";
 
 import { bundleSourceMap } from "./map";
 import { checkExtensionName, genCssImport, getCssPath, getExternalCssPath } from "./options";
+import path from "path";
+import fs from "fs";
+
+const sassImporter = (url: string) => {
+  const extList = ['', '.scss', '.sass', '.css'];
+  const getPackagePath = (name: string, namespace?: string) => {
+    const packageJsonPath = namespace ? require.resolve(`@${namespace}/${name}/package.json`) : require.resolve(`${name}/package.json`);
+    const packagePath = path.dirname(packageJsonPath);
+    return packagePath;
+  };
+  const getPath = (packagePath: string, filepath: string): string => {
+    let result = '';
+    extList.find(ext => {
+      const target = path.join(packagePath, filepath + ext)
+      if (fs.existsSync(target)) {
+        result = target;
+        return true
+      }
+    });
+    return result;
+  };
+  const getContents = (filepath: string, packageName: string, packageNamespace?: string) => {
+    const packagePath = getPackagePath(packageName, packageNamespace);
+    const finalPath = getPath(packagePath, filepath);
+    if (finalPath) {
+      const contents = fs.readFileSync(finalPath, { encoding: 'utf-8' });
+      return { file: finalPath, contents };
+    }
+  };
+
+  const matchedNamespace = url.match(/^\@([^/]+)\/([^/]+)\/(.*)$/);
+  const matchedPackage = url.match(/^([^/]+)\/(.*)$/);
+  if (matchedNamespace) {
+    const [, namespace, packageName, filepath] = matchedNamespace;
+    return getContents(filepath, packageName, namespace);
+  } else if (matchedPackage) {
+    const [, packageName, filepath] = matchedPackage;
+    return getContents(filepath, packageName);
+  }
+};
 
 export const resolveStyles = (descriptor: SFCDescriptor, context: Context): { files?: CompileResultFile[]; importList?: string[]; errors?: Error[] } => {
   const errors: Error[] = [];
@@ -67,6 +107,7 @@ export const resolveStyles = (descriptor: SFCDescriptor, context: Context): { fi
         inMap: style.map,
         preprocessLang,
         preprocessOptions: (preprocessLang === 'scss' || preprocessLang === 'sass') ? {
+          importer: sassImporter,
           omitSourceMapUrl: true
         } : undefined,
         isProd: context.isProd,
