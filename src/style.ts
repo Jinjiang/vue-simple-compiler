@@ -61,7 +61,7 @@ export const resolveStyles = (descriptor: SFCDescriptor, context: Context): { fi
     if (!style.src) {
       const compiledStyle = compileStyle({
         id: context.id,
-        filename: context.filename,
+        filename: context.fullpath,
         source: style.content,
         scoped: style.scoped,
         inMap: style.map,

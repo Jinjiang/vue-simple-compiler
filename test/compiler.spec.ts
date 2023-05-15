@@ -1,6 +1,6 @@
-import { join } from "path";
+import { join, resolve } from "path";
 import { ensureDirSync, writeFileSync, rmSync, existsSync } from "fs-extra";
-import { beforeEach, expect, it } from "vitest";
+import { afterAll, beforeEach, expect, it } from "vitest";
 import { defineComponent } from "vue";
 import { render } from "@testing-library/vue";
 
@@ -488,6 +488,35 @@ it("works with external sass", async () => {
   const HelloWorld = (await import(modulePath)).default;
   const wrapper = render(defineComponent(HelloWorld));
   expect(wrapper.baseElement.querySelectorAll("a").length).toBe(3);
+});
+
+it("works with external sass via @use", async () => {
+  const dir = join(testDistDir, "external-sass2");
+  if (existsSync(dir)) {
+    rmSync(dir, { recursive: true });
+  }
+  ensureDirSync(dir);
+  writeFileSync(join(dir, './external2.scss'), fixtures.externalSassAsset2);
+  const {
+    js: { filename: destFilename, code: jsCode },
+    css,
+    externalJs,
+    externalCss,
+  } = compile(fixtures.externalSass2, {
+    filename: "foo.vue",
+    autoImportCss: true,
+    root: resolve(dir)
+  });
+  expect(destFilename).toBe("foo.vue.js");
+  expect(css.length).toBe(1);
+  expect(externalJs.length).toBe(0);
+  expect(externalCss.length).toBe(0);
+  const modulePath = join(dir, destFilename);
+  writeFileSync(modulePath, jsCode);
+  writeFileSync(join(dir, css[0].filename), css[0].code);
+  const HelloWorld = (await import(modulePath)).default;
+  const result = render(defineComponent(HelloWorld));
+  expect(result.html()).toMatch("Content goes here");
 });
 
 it("works with external scoped css", async () => {

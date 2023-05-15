@@ -6,12 +6,14 @@ import hashId from "hash-sum";
 
 import { FILENAME, ROOT, ID } from "./constants";
 import { getDestPath } from "./options";
+import { join } from "path";
 
 export type Context = {
   isProd: boolean;
   hmr: boolean;
   root: string;
   filename: string;
+  fullpath: string;
   id: string;
   destFilename: string;
   options: CompilerOptions;
@@ -62,14 +64,17 @@ export const resolveFeatures = (descriptor: SFCDescriptor, context: Context) => 
 };
 
 export const createContext = (source: string, options?: CompilerOptions): Context => {
+  const root = options?.root ?? ROOT;
   const filename = options?.filename ?? FILENAME;
+  const fullpath = join(root, filename);
   const destFilename = getDestPath(options?.filename ?? FILENAME);
   const id = options?.filename ? hashId(options.filename + source) : ID;
   const context: Context = {
     isProd: options?.isProd ?? false,
     hmr: options?.hmr ?? false,
-    root: options?.root ?? ROOT,
+    root,
     filename,
+    fullpath,
     id,
     destFilename,
     options: options ?? {},

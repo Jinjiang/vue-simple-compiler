@@ -308,6 +308,32 @@ nav {
 }
 `
 
+export const externalSass2 = `
+<template>
+  <div class="container">
+    Content goes here
+  </div>
+</template>
+
+<style scoped lang="scss">
+@use "./external2.scss" as c;
+
+.container {
+  @include c.rounded;
+  padding: 5px + c.$radius;
+  background-color: silver;
+}
+</style>
+`;
+
+export const externalSassAsset2 = `
+$radius: 3px;
+
+@mixin rounded {
+  border-radius: $radius;
+}
+`
+
 export const externalScoped = `
 <script>
 import { ref } from 'vue'
