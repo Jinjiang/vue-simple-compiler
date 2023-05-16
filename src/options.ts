@@ -14,15 +14,20 @@ export type CompilerOptions = {
 // - scoped css -> filename.vue.css
 // - modules -> filename.vue.${index}.module.css
 export const getCssPath = (srcPath: string, index?: number): string =>
-  `${srcPath}${typeof index === "number" ? `.${index}.module` : ""}.css`;
+  `${srcPath}${typeof index === 'number' ? `.${index}.module` : ''}.css`;
 
 // - style[src=foo.css] -> foo.css
 // - style[src=foo.scss] -> foo.scss
 // - style[src=foo.css][scoped] -> foo.css?scoped=true&id=xxx
 // - style[src=foo.css][module] -> foo.css?module=true
 // - style[src=foo.scss][module] -> foo.scss?module=true
-export const getExternalCssPath = (srcPath: string, options: { scoped?: boolean; id?: string; module?: boolean }): string => {
-  if (!srcPath.endsWith(".css") && !srcPath.endsWith(".scss")) {
+export const getExternalCssPath = (
+  srcPath: string,
+  options: { scoped?: boolean; id?: string; module?: boolean }
+): string => {
+  const filename = srcPath.split('/').pop() || '';
+  const ext = filename.split('.').pop() || '';
+  if (['css', 'scss', 'sass', 'less'].includes(ext) === false) {
     throw new Error(`Unsupported CSS file: ${srcPath}`);
   }
   if (options.scoped && !options.id) {
@@ -38,18 +43,16 @@ export const getExternalCssPath = (srcPath: string, options: { scoped?: boolean;
   } else if (options.module) {
     query.push(`module=true`);
   }
-  return query.length ? `${srcPath}?${query.join("&")}` : srcPath;
-}
+  return query.length ? `${srcPath}?${query.join('&')}&${filename}` : srcPath;
+};
 
 export const getDestPath = (srcPath: string): string =>
-  srcPath.endsWith(".vue")
+  srcPath.endsWith('.vue')
     ? `${srcPath}.js`
-    : srcPath.replace(/\.(j|t)sx?$/, ".js");
+    : srcPath.replace(/\.(j|t)sx?$/, '.js');
 
 export const genCssImport = (cssPath: string, styleVar?: string): string =>
-  styleVar
-    ? `import ${styleVar} from '${cssPath}';`
-    : `import '${cssPath}';`;
+  styleVar ? `import ${styleVar} from '${cssPath}';` : `import '${cssPath}';`;
 
 export const checkExtensionName = (filename: string, ext: string[]): boolean =>
-  ext.some((e) => filename.endsWith('.' + e));
+  ext.some((e) => filename.endsWith(`.${e}`));

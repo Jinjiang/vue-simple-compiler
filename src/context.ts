@@ -1,12 +1,13 @@
-import type { BindingMetadata, SFCDescriptor } from "vue/compiler-sfc";
-import type { CompileResultExternalFile, CompilerOptions } from "./types";
+import type { BindingMetadata, SFCDescriptor } from 'vue/compiler-sfc';
 
+import { join } from 'path';
 // @ts-ignore
-import hashId from "hash-sum";
+import hashId from 'hash-sum';
 
-import { FILENAME, ROOT, ID } from "./constants";
-import { getDestPath } from "./options";
-import { join } from "path";
+import type { CompileResultExternalFile, CompilerOptions } from './types';
+
+import { FILENAME, ROOT, ID } from './constants';
+import { getDestPath } from './options';
 
 export type Context = {
   isProd: boolean;
@@ -34,12 +35,16 @@ export type SFCFeatures = {
   hasTS?: boolean;
 };
 
-export const resolveFeatures = (descriptor: SFCDescriptor, context: Context) => {
+export const resolveFeatures = (
+  descriptor: SFCDescriptor,
+  context: Context
+) => {
   const { filename, features, addedProps, addedCodeList, id } = context;
   const scriptLang =
     (descriptor.script && descriptor.script.lang) ||
-    (descriptor.scriptSetup && descriptor.scriptSetup.lang) || 'js';
-  features.hasTS = scriptLang === "ts";
+    (descriptor.scriptSetup && descriptor.scriptSetup.lang) ||
+    'js';
+  features.hasTS = scriptLang === 'ts';
   descriptor.styles.some((style) => {
     if (style.scoped) {
       features.hasScoped = true;
@@ -50,20 +55,23 @@ export const resolveFeatures = (descriptor: SFCDescriptor, context: Context) => 
     features.hasStyle = true;
     return features.hasScoped && features.hasCSSModules && features.hasStyle;
   });
-  addedProps.push(["__file", JSON.stringify(filename)]);
+  addedProps.push(['__file', JSON.stringify(filename)]);
   if (features.hasScoped) {
-    addedProps.push(["__scopeId", JSON.stringify(`data-v-${id}`)]);
+    addedProps.push(['__scopeId', JSON.stringify(`data-v-${id}`)]);
   }
   if (features.hasCSSModules) {
-    addedProps.push(["__cssModules", `cssModules`]);
-    addedCodeList.push("const cssModules= {}");
+    addedProps.push(['__cssModules', `cssModules`]);
+    addedCodeList.push('const cssModules= {}');
   }
   if (!context.isProd) {
-    addedProps.push(["__file", JSON.stringify(filename.replace(/\\/g, '/'))]);
+    addedProps.push(['__file', JSON.stringify(filename.replace(/\\/g, '/'))]);
   }
 };
 
-export const createContext = (source: string, options?: CompilerOptions): Context => {
+export const createContext = (
+  source: string,
+  options?: CompilerOptions
+): Context => {
   const root = options?.root ?? ROOT;
   const filename = options?.filename ?? FILENAME;
   const fullpath = join(root, filename);
@@ -86,4 +94,4 @@ export const createContext = (source: string, options?: CompilerOptions): Contex
     bindingMetadata: undefined,
   };
   return context;
-}
+};

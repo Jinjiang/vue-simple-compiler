@@ -2,15 +2,16 @@ import type {
   SFCDescriptor,
   SFCScriptBlock,
   CompilerOptions as SFCCompilerOptions,
-} from "vue/compiler-sfc";
-import type { TransformResult, Context } from "./types";
+} from 'vue/compiler-sfc';
 
-import { compileScript, rewriteDefault } from "vue/compiler-sfc";
+import { compileScript, rewriteDefault } from 'vue/compiler-sfc';
 
-import { COMP_ID } from "./constants";
-import { chainSourceMap } from "./map";
-import { checkExtensionName } from "./options";
-import { transformTS } from "./transform";
+import type { TransformResult, Context } from './types';
+
+import { COMP_ID } from './constants';
+import { chainSourceMap } from './map';
+import { checkExtensionName } from './options';
+import { transformTS } from './transform';
 
 export const resolveScript = (
   descriptor: SFCDescriptor,
@@ -22,14 +23,15 @@ export const resolveScript = (
   const scriptLang =
     (descriptor.script && descriptor.script.lang) ||
     (descriptor.scriptSetup && descriptor.scriptSetup.lang) ||
-    "js";
+    'js';
 
   if (descriptor.script || descriptor.scriptSetup) {
-    if (scriptLang !== "js" && scriptLang !== "ts") {
+    if (scriptLang !== 'js' && scriptLang !== 'ts') {
       return {
         errors: [new Error(`Unsupported script lang: ${scriptLang}`)],
       };
-    } else if (descriptor.scriptSetup?.src) {
+    }
+    if (descriptor.scriptSetup?.src) {
       return {
         errors: [
           new Error(
@@ -37,7 +39,8 @@ export const resolveScript = (
           ),
         ],
       };
-    } else if (descriptor.script?.src) {
+    }
+    if (descriptor.script?.src) {
       if (!checkExtensionName(descriptor.script.src, [scriptLang])) {
         return {
           errors: [
@@ -58,61 +61,52 @@ export const resolveScript = (
           )}`,
         },
       };
-    } else {
-      const expressionPlugins: SFCCompilerOptions["expressionPlugins"] = context
-        .features.hasTS
-        ? ["typescript"]
-        : undefined;
-      let scriptBlock: SFCScriptBlock;
-      try {
-        scriptBlock = compileScript(descriptor, {
-          id: context.id,
-          inlineTemplate: true,
-          templateOptions: {
-            compilerOptions: {
-              expressionPlugins,
-            },
+    }
+    const expressionPlugins: SFCCompilerOptions['expressionPlugins'] = context
+      .features.hasTS
+      ? ['typescript']
+      : undefined;
+    let scriptBlock: SFCScriptBlock;
+    try {
+      scriptBlock = compileScript(descriptor, {
+        id: context.id,
+        inlineTemplate: true,
+        templateOptions: {
+          compilerOptions: {
+            expressionPlugins,
           },
-          isProd: context.isProd,
-        });
+        },
+        isProd: context.isProd,
+      });
+    } catch (error) {
+      return { errors: [error as Error] };
+    }
+    // basic source map
+    context.bindingMetadata = scriptBlock.bindings;
+    if (context.features.hasTS) {
+      try {
+        const transformed = transformTS(scriptBlock.content);
+        const sourceMap = chainSourceMap(
+          scriptBlock.map,
+          transformed.sourceMap
+        );
+        return {
+          result: {
+            code: rewriteDefault(transformed.code, COMP_ID, expressionPlugins),
+            sourceMap,
+          },
+        };
       } catch (error) {
         return { errors: [error as Error] };
       }
-      // basic source map
-      context.bindingMetadata = scriptBlock.bindings;
-      if (context.features.hasTS) {
-        try {
-          const transformed = transformTS(scriptBlock.content);
-          const sourceMap = chainSourceMap(
-            scriptBlock.map,
-            transformed.sourceMap
-          );
-          return {
-            result: {
-              code: rewriteDefault(
-                transformed.code,
-                COMP_ID,
-                expressionPlugins
-              ),
-              sourceMap,
-            },
-          };
-        } catch (error) {
-          return { errors: [error as Error] };
-        }
-      } else {
-        // No source map update technically.
-        return {
-          result: {
-            code: rewriteDefault(
-              scriptBlock.content,
-              COMP_ID,
-              expressionPlugins
-            ),
-            sourceMap: scriptBlock.map,
-          },
-        };
-      }
+    } else {
+      // No source map update technically.
+      return {
+        result: {
+          code: rewriteDefault(scriptBlock.content, COMP_ID, expressionPlugins),
+          sourceMap: scriptBlock.map,
+        },
+      };
     }
   } else {
     return { result: { code: `const ${COMP_ID} = {}` } };

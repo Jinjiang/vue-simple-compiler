@@ -222,7 +222,7 @@ export default {
     return { msg }
   }
 }
-`
+`;
 
 export const externalTs = `
 <script lang="ts" src="./external.ts"></script>
@@ -245,7 +245,7 @@ export default {
     },
   },
 }
-`
+`;
 
 export const externalCss = `
 <script>
@@ -268,7 +268,7 @@ export default {
 
 export const externalCssAsset = `
 h1 { color: red }
-`
+`;
 
 export const externalSass = `
 <template>
@@ -306,7 +306,7 @@ nav {
     text-decoration: none;
   }
 }
-`
+`;
 
 export const externalSass2 = `
 <template>
@@ -332,7 +332,7 @@ $radius: 3px;
 @mixin rounded {
   border-radius: $radius;
 }
-`
+`;
 
 export const externalSass3 = `
 <template>
@@ -358,7 +358,7 @@ $radius: 3px;
 @mixin rounded {
   border-radius: $radius;
 }
-`
+`;
 
 export const externalSass4 = `
 <template>
@@ -384,7 +384,7 @@ $radius: 3px;
 @mixin rounded {
   border-radius: $radius;
 }
-`
+`;
 
 export const externalScoped = `
 <script>
@@ -407,7 +407,7 @@ export default {
 
 export const externalScopedAsset = `
 .title { color: red }
-`
+`;
 
 export const externalCssModules = `
 <script>
@@ -439,4 +439,3 @@ export const externalCssModulesAsset = `.red {
   font-weight: bold;
 }
 `;
-

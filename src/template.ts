@@ -1,19 +1,20 @@
-import type { SFCDescriptor } from "vue/compiler-sfc";
-import type { Context, TransformResult } from "./types";
+import type { SFCDescriptor } from 'vue/compiler-sfc';
 
-import { compileTemplate } from "vue/compiler-sfc";
+import { compileTemplate } from 'vue/compiler-sfc';
 
-import { COMP_ID } from "./constants";
+import type { Context, TransformResult } from './types';
+
+import { COMP_ID } from './constants';
 
 export const resolveTemplate = (
   descriptor: SFCDescriptor,
-  context: Context,
+  context: Context
 ): {
   result?: TransformResult;
   errors?: Error[];
 } => {
   if (descriptor.template && !descriptor.scriptSetup) {
-    if (descriptor.template.lang && descriptor.template.lang !== "html") {
+    if (descriptor.template.lang && descriptor.template.lang !== 'html') {
       return {
         errors: [
           new Error(`Unsupported template lang: ${descriptor.template.lang}`),
@@ -42,6 +43,7 @@ export const resolveTemplate = (
       isProd: context.isProd,
     });
     if (templateResult.errors.length) {
+      // eslint-disable-next-line @typescript-eslint/no-throw-literal
       throw templateResult.errors;
     }
 
@@ -59,5 +61,5 @@ export const resolveTemplate = (
     };
   }
 
-  return { result: { code: "" } };
+  return { result: { code: '' } };
 };

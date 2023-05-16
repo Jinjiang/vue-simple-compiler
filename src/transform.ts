@@ -1,14 +1,14 @@
-import type { CompilerOptions, TransformResult } from "./types";
+import * as typescript from 'sucrase';
+import { babelParse, MagicString } from 'vue/compiler-sfc';
 
-import * as typescript from "sucrase";
-import { babelParse, MagicString } from "vue/compiler-sfc";
+import type { CompilerOptions, TransformResult } from './types';
 
-import { FILENAME } from "./constants";
-import { getDestPath } from "./options";
+import { FILENAME } from './constants';
+import { getDestPath } from './options';
 
 export const transformTS = (src: string) => {
   return typescript.transform(src, {
-    transforms: ["typescript"],
+    transforms: ['typescript'],
   }) as unknown as TransformResult;
 };
 
@@ -32,17 +32,17 @@ export const resolveImports = (
   const resolver = options?.resolver ?? ((x) => x);
   const ast = babelParse(code, {
     sourceFilename: options?.filename ?? FILENAME,
-    sourceType: "module",
+    sourceType: 'module',
   }).program.body;
 
   ast.forEach((node) => {
-    if (node.type === "ImportDeclaration") {
+    if (node.type === 'ImportDeclaration') {
       const srcPath = resolver(node.source.value);
       if (srcPath) {
         const destPath = getDestPath(srcPath);
         if (
-          typeof node.source.start === "number" &&
-          typeof node.source.end === "number"
+          typeof node.source.start === 'number' &&
+          typeof node.source.end === 'number'
         ) {
           s.overwrite(
             node.source.start,

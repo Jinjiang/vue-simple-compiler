@@ -1,10 +1,17 @@
-import type { FileInfo, RawSourceMap } from "./map";
-import type { FileResolver, CompilerOptions } from "./options";
-import type { SFCFeatures, Context } from "./context"
+import type { FileInfo, RawSourceMap } from './map';
+import type { FileResolver, CompilerOptions } from './options';
+import type { SFCFeatures, Context } from './context';
 
-export type { FileInfo, RawSourceMap, FileResolver, CompilerOptions, SFCFeatures, Context }
+export type {
+  FileInfo,
+  RawSourceMap,
+  FileResolver,
+  CompilerOptions,
+  SFCFeatures,
+  Context,
+};
 
-export type TransformResult = FileInfo
+export type TransformResult = FileInfo;
 
 export type CompileResultFile = {
   filename: string;
