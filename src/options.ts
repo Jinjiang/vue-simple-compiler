@@ -10,23 +10,25 @@ export type CompilerOptions = {
   hmr?: boolean;
 };
 
-// - plain css -> filename.vue.css
-// - scoped css -> filename.vue.css
-// - modules -> filename.vue.${index}.module.css
-export const getCssPath = (srcPath: string, index?: number): string =>
-  `${srcPath}${typeof index === 'number' ? `.${index}.module` : ''}.css`;
+// e.g. filename.vue__0.css
+export const getCssPath = (srcPath: string, index: number, lang: string): string =>
+  `${srcPath}__${index}.${lang}`;
 
 // - style[src=foo.css] -> foo.css
 // - style[src=foo.scss] -> foo.scss
-// - style[src=foo.css][scoped] -> foo.css?scoped=true&id=xxx
-// - style[src=foo.css][module] -> foo.css?module=true
-// - style[src=foo.scss][module] -> foo.scss?module=true
+// - style[src=foo.css][scoped] -> foo.css?scoped=true&id=xxx&lang.css
+// - style[src=foo.css][module] -> foo.css?module=true&lang.module.css
+// - style[src=foo.scss][module] -> foo.scss?module=true&lang.module.scss
 export const getExternalCssPath = (
   srcPath: string,
   options: { scoped?: boolean; id?: string; module?: boolean }
 ): string => {
+  // e.g. foo.css
   const filename = srcPath.split('/').pop() || '';
+  // e.g. css
   const ext = filename.split('.').pop() || '';
+
+  // validations
   if (['css', 'scss', 'sass', 'less'].includes(ext) === false) {
     throw new Error(`Unsupported CSS file: ${srcPath}`);
   }
@@ -36,14 +38,18 @@ export const getExternalCssPath = (
   if (options.scoped && options.module) {
     throw new Error(`Scoped CSS cannot be used with CSS modules: ${srcPath}`);
   }
-  const query: string[] = [];
+
+  // normalizations
   if (options.scoped && options.id) {
-    query.push(`scoped=true`);
-    query.push(`id=${options.id}`);
-  } else if (options.module) {
-    query.push(`module=true`);
+    // e.g. foo.css?scoped=true&id=xxx&lang.css
+    return `${srcPath}?scoped=true&id=${options.id}&lang.${ext}`;
   }
-  return query.length ? `${srcPath}?${query.join('&')}&${filename}` : srcPath;
+  if (options.module) {
+    // e.g. foo.css?module=true&lang.module.css
+    return `${srcPath}?module=true&lang.module.${ext}`;
+  }
+  // e.g. foo.css
+  return srcPath;
 };
 
 export const getDestPath = (srcPath: string): string =>
