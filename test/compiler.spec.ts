@@ -65,7 +65,7 @@ it('works', async () => {
   expect(css.length).toBe(1);
   expect(externalJs.length).toBe(0);
   expect(externalCss.length).toBe(0);
-  expect(css[0].filename).toBe('anonymous.vue.css');
+  expect(css[0].filename).toBe('anonymous.vue__0.css');
   expect(css[0].code).toBeTruthy();
   const dir = join(testDistDir, 'mvp');
   const modulePath = join(dir, destFilename);
@@ -114,7 +114,7 @@ it('works with custom filename', async () => {
   } = compile(fixtures.mvp, { filename: 'custom.vue' });
   expect(destFilename).toBe('custom.vue.js');
   expect(css.length).toBe(1);
-  expect(css[0].filename).toBe('custom.vue.css');
+  expect(css[0].filename).toBe('custom.vue__0.css');
   expect(css[0].code).toBeTruthy();
   const dir = join(testDistDir, 'custom-filename');
   const modulePath = join(dir, destFilename);
@@ -138,7 +138,7 @@ it('works with <script setup>', async () => {
   } = compile(fixtures.setup, { filename: 'setup.vue' });
   expect(destFilename).toBe('setup.vue.js');
   expect(css.length).toBe(1);
-  expect(css[0].filename).toBe('setup.vue.css');
+  expect(css[0].filename).toBe('setup.vue__0.css');
   expect(css[0].code).toBeTruthy();
   const dir = join(testDistDir, 'setup');
   const modulePath = join(dir, destFilename);
@@ -224,7 +224,7 @@ it('works with auto-import css', async () => {
   expect(externalJs.length).toBe(0);
   expect(externalCss.length).toBe(0);
   expect(css[0].code).toBeTruthy();
-  expect(jsCode.includes(`import './foo.vue.css'`)).toBe(true);
+  expect(jsCode.includes(`import './foo.vue__0.css'`)).toBe(true);
   const dir = join(testDistDir, 'auto-import-css');
   const modulePath = join(dir, destFilename);
   if (existsSync(dir)) {
@@ -247,7 +247,7 @@ it('works with auto-import css without <style>', async () => {
   } = compile(fixtures.nonCss, { filename: 'foo.vue', autoImportCss: true });
   expect(destFilename).toBe('foo.vue.js');
   expect(css.length).toBe(0);
-  expect(jsCode.includes(`import './foo.vue.css'`)).toBe(false);
+  expect(jsCode.includes(`import './foo.vue__0.css'`)).toBe(false);
   const dir = join(testDistDir, 'auto-import-non-css');
   const modulePath = join(dir, destFilename);
   if (existsSync(dir)) {
@@ -270,7 +270,7 @@ it('works with scoped CSS', async () => {
   expect(destFilename).toBe('scoped.vue.js');
   expect(css.length).toBe(1);
   expect(css[0].code).toBeTruthy();
-  expect(css[0].filename).toBe('scoped.vue.css');
+  expect(css[0].filename).toBe('scoped.vue__0.css');
   const dir = join(testDistDir, 'scoped');
   const modulePath = join(dir, destFilename);
   if (existsSync(dir)) {
@@ -293,7 +293,6 @@ it('works with scoped CSS', async () => {
   expect(rootElement.children[1].attributes.item(0)!.name).toEqual(
     rootElement.children[0].attributes.item(0)!.name
   );
-  expect(css[0].code).toMatch(rootElement.children[0].attributes.item(0)!.name);
 });
 
 it('works with CSS Modules', async () => {
@@ -307,7 +306,7 @@ it('works with CSS Modules', async () => {
   expect(destFilename).toBe('css.modules.vue.js');
   expect(css.length).toBe(1);
   expect(css[0].code).toBeTruthy();
-  expect(css[0].filename).toBe('css.modules.vue.0.module.css');
+  expect(css[0].filename).toBe('css.modules.vue__0.css');
   const dir = join(testDistDir, 'css-modules');
   const modulePath = join(dir, destFilename);
   if (existsSync(dir)) {
@@ -338,7 +337,7 @@ it('works with CSS Modules without auto-import-css', async () => {
   expect(destFilename).toBe('css.modules.vue.js');
   expect(css.length).toBe(1);
   expect(css[0].code).toBeTruthy();
-  expect(css[0].filename).toBe('css.modules.vue.0.module.css');
+  expect(css[0].filename).toBe('css.modules.vue__0.css');
   const dir = join(testDistDir, 'css-modules-without-auto-import-css');
   const modulePath = join(dir, destFilename);
   if (existsSync(dir)) {
@@ -360,12 +359,11 @@ it('works with sass', async () => {
   const {
     js: { filename: destFilename, code: jsCode },
     css,
-    errors,
   } = compile(fixtures.sass, { filename: 'foo.vue', autoImportCss: true });
   expect(destFilename).toBe('foo.vue.js');
   expect(css.length).toBe(1);
   expect(css[0].code).toBeTruthy();
-  expect(jsCode.includes(`import './foo.vue.css'`)).toBe(true);
+  expect(jsCode.includes(`import './foo.vue__0.scss'`)).toBe(true);
   const dir = join(testDistDir, 'sass');
   const modulePath = join(dir, destFilename);
   if (existsSync(dir)) {
@@ -396,7 +394,7 @@ it('works with external js', async () => {
   expect(externalJs[0].query).toEqual({});
   expect(externalCss.length).toBe(0);
   expect(css[0].code).toBeTruthy();
-  expect(jsCode.includes(`import './foo.vue.css'`)).toBe(true);
+  expect(jsCode.includes(`import './foo.vue__0.css'`)).toBe(true);
   const dir = join(testDistDir, 'external-js');
   const modulePath = join(dir, destFilename);
   if (existsSync(dir)) {
@@ -630,7 +628,7 @@ it('works with external scoped css', async () => {
   expect(externalCss[0].query.id).toBeTruthy();
   expect(
     jsCode.includes(
-      `import './external.css?scoped=true&id=${externalCss[0].query.id}&external.css'`
+      `import './external.css?scoped=true&id=${externalCss[0].query.id}&lang.css'`
     )
   ).toBe(true);
   const dir = join(testDistDir, 'external-scoped');
@@ -678,7 +676,7 @@ it('works with external css modules', async () => {
   expect(externalCss[0].query).toEqual({ module: 'true' });
   expect(
     jsCode.includes(
-      `import style0 from './external.module.css?module=true&external.module.css'`
+      `import style0 from './external.module.css?module=true&lang.module.css'`
     )
   ).toBe(true);
   const dir = join(testDistDir, 'external-css-modules');

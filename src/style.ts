@@ -113,7 +113,7 @@ export const resolveStyles = (
     // - scoped x module x src
     // - auto import css
     if (context.options?.autoImportCss) {
-      const baseCssPath = style.src || cssFilePath;
+      const baseCssPath = style.src || `./${cssFilePath}`;
       const destCssFilePath = getExternalCssPath(
         baseCssPath,
         {
