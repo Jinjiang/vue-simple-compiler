@@ -55,7 +55,6 @@ export const resolveFeatures = (
     features.hasStyle = true;
     return features.hasScoped && features.hasCSSModules && features.hasStyle;
   });
-  addedProps.push(['__file', JSON.stringify(filename)]);
   if (features.hasScoped) {
     addedProps.push(['__scopeId', JSON.stringify(`data-v-${id}`)]);
   }
