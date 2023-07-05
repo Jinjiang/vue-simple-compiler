@@ -21,7 +21,8 @@ import {
 } from './options';
 
 const sassImporter = (
-  url: string
+  url: string,
+  fullpath: string
 ): {
   file: string;
   contents: string;
@@ -29,8 +30,8 @@ const sassImporter = (
   const extList = ['', '.scss', '.sass', '.css'];
   const getPackagePath = (name: string, namespace?: string) => {
     const packageJsonPath = namespace
-      ? require.resolve(`@${namespace}/${name}/package.json`)
-      : require.resolve(`${name}/package.json`);
+      ? require.resolve(`@${namespace}/${name}/package.json`, { paths: [fullpath] })
+      : require.resolve(`${name}/package.json`, { paths: [fullpath] });
     const packagePath = path.dirname(packageJsonPath);
     return packagePath;
   };
