@@ -76,11 +76,11 @@ type CompileResult = {
   - a list of external CSS files (only filepath).
 - The list of CSS files is possibly empty if there is no CSS code parsed and generated.
 - The filename of JS file is usually `*.vue.js`.
-- The filename of non-module CSS file is usually `*.vue.css`.
-- The filename of CSS Modules file is usually `*.vue.<index>.module.css`.
-- The filepath of external CSS files sometimes has query parameters.
+- The filename of CSS file is usually `*.vue__<index>.css`.
+- The ES imports of CSS files will has query parameters.
   - `scoped` and `id` are used for scoped CSS.
   - `module` is used for CSS Modules.
+  - `lang.<lang>` or `lang.module.<lang>` at the end. e.g. `lang.scss`, `lang.module.less`, etc.
 
 ## Features
 
@@ -141,7 +141,7 @@ js.filename; // `foo.vue.js`
 js.code; // JavaScript code
 js.sourceMap; // Source map of JavaScript code
 
-css[0].filename; // `foo.vue.css`
+css[0].filename; // `foo.vue__0.css`
 css[0].code; // CSS code
 css[0].sourceMap; // Source map of CSS code
 ```
