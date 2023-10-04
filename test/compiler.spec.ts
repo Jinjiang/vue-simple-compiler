@@ -1,6 +1,6 @@
 import { join, resolve } from 'path';
 import { ensureDirSync, writeFileSync, rmSync, existsSync } from 'fs-extra';
-import { afterAll, beforeEach, expect, it } from "vitest";
+import { beforeEach, expect, it } from "vitest";
 import { defineComponent } from 'vue';
 import { render } from '@testing-library/vue';
 import findRoot from 'find-root';
@@ -700,3 +700,24 @@ it('works with external css modules', async () => {
     wrapper.getByText('Red and bold').classList[0]
   );
 });
+
+it('works with custom compiler options', async () => {
+  const {
+    js: { filename: destFilename, code: jsCode },
+    css,
+    externalJs,
+    externalCss,
+  } = compile(fixtures.customCompilerOptions, {
+    filename: 'foo.vue',
+    autoImportCss: true,
+    sfcTemplateCompilerOptions: {
+      transformAssetUrls: false
+    }
+  });
+  expect(destFilename).toBe('foo.vue.js');
+  expect(css.length).toBe(0);
+  expect(externalJs.length).toBe(0);
+  expect(externalCss.length).toBe(0);
+  // skip transforming assets into imports
+  expect(jsCode.includes(`src: "./assets/logo.svg"`)).toBe(true);
+})

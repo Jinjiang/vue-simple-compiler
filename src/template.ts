@@ -32,12 +32,14 @@ export const resolveTemplate = (
     }
 
     const templateResult = compileTemplate({
+      ...context.options.sfcTemplateCompilerOptions,
       id: `data-v-${context.id}`,
       filename: context.filename,
       source: descriptor.template.content,
       scoped: context.features.hasScoped,
       compilerOptions: {
         bindingMetadata: context.bindingMetadata,
+        ...context.options.sfcTemplateCompilerOptions?.compilerOptions,
       },
       inMap: descriptor.template.map,
       isProd: context.isProd,

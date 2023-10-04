@@ -69,11 +69,15 @@ export const resolveScript = (
     let scriptBlock: SFCScriptBlock;
     try {
       scriptBlock = compileScript(descriptor, {
+        ...context.options.sfcScriptCompilerOptions,
         id: context.id,
         inlineTemplate: true,
         templateOptions: {
+          ...context.options.sfcScriptCompilerOptions?.templateOptions,
           compilerOptions: {
             expressionPlugins,
+            ...context.options.sfcScriptCompilerOptions?.templateOptions
+              ?.compilerOptions,
           },
         },
         isProd: context.isProd,

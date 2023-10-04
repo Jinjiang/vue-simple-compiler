@@ -1,4 +1,5 @@
 import type { CompilerOptions as TsCompilerOptions } from 'typescript';
+import type { SFCScriptCompileOptions, SFCTemplateCompileOptions } from 'vue/compiler-sfc';
 
 import typescript from 'typescript';
 
@@ -17,6 +18,8 @@ export type CompilerOptions = {
   tsCompilerOptions?: TsCompilerOptions;
   tsRuntime?: typeof typescript;
   tsTransform?: TsTransform;
+  sfcScriptCompilerOptions?: Partial<SFCScriptCompileOptions>;
+  sfcTemplateCompilerOptions?: Partial<SFCTemplateCompileOptions>;
 };
 
 // e.g. filename.vue__0.css
