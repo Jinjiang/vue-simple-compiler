@@ -11,7 +11,7 @@ import type { TransformResult, Context } from './types';
 import { COMP_ID } from './constants';
 import { chainSourceMap } from './map';
 import { checkExtensionName } from './options';
-import { transformTS } from './transform';
+import { tsTransform } from './transform';
 
 export const resolveScript = (
   descriptor: SFCDescriptor,
@@ -85,7 +85,12 @@ export const resolveScript = (
     context.bindingMetadata = scriptBlock.bindings;
     if (context.features.hasTS) {
       try {
-        const transformed = transformTS(scriptBlock.content);
+        const transform = context.options.tsTransform || tsTransform;
+        const transformed = transform(
+          scriptBlock.content,
+          context.options.tsCompilerOptions,
+          context.options.tsRuntime
+        );
         const sourceMap = chainSourceMap(
           scriptBlock.map,
           transformed.sourceMap

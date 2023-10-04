@@ -1,3 +1,9 @@
+import type { CompilerOptions as TsCompilerOptions } from 'typescript';
+
+import typescript from 'typescript';
+
+import type { TsTransform } from './types';
+
 export type FileResolver = (filename: string) => string;
 
 export type CompilerOptions = {
@@ -8,6 +14,9 @@ export type CompilerOptions = {
   autoResolveImports?: boolean;
   isProd?: boolean;
   hmr?: boolean;
+  tsCompilerOptions?: TsCompilerOptions;
+  tsRuntime?: typeof typescript;
+  tsTransform?: TsTransform;
 };
 
 // e.g. filename.vue__0.css
@@ -41,8 +50,9 @@ export const getExternalCssPath = (
 
   // normalizations
   if (options.scoped && options.id) {
-    // e.g. foo.css?scoped=true&id=xxx&lang.css
-    return `${srcPath}?scoped=true&id=${options.id}&lang.${ext}`;
+    // to follow the current rules in @vitejs/plugin-vue and vue-loader
+    // e.g. foo.css?vue&type=style&scoped=true&id=xxx&src=xxx&lang.css
+    return `${srcPath}?vue&type=style&scoped=true&id=${options.id}&src=${options.id}&lang.${ext}`;
   }
   if (options.module) {
     // e.g. foo.css?module=true&lang.module.css

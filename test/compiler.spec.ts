@@ -628,7 +628,7 @@ it('works with external scoped css', async () => {
   expect(externalCss[0].query.id).toBeTruthy();
   expect(
     jsCode.includes(
-      `import './external.css?scoped=true&id=${externalCss[0].query.id}&lang.css'`
+      `import './external.css?vue&type=style&scoped=true&id=${externalCss[0].query.id}&src=${externalCss[0].query.id}&lang.css'`
     )
   ).toBe(true);
   const dir = join(testDistDir, 'external-scoped');

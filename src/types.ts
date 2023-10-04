@@ -1,6 +1,7 @@
 import type { FileInfo, RawSourceMap } from './map';
 import type { FileResolver, CompilerOptions } from './options';
 import type { SFCFeatures, Context } from './context';
+import type { TsTransform } from './transform';
 
 export type {
   FileInfo,
@@ -9,6 +10,7 @@ export type {
   CompilerOptions,
   SFCFeatures,
   Context,
+  TsTransform,
 };
 
 export type TransformResult = FileInfo;

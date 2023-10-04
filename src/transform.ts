@@ -1,4 +1,5 @@
-import * as typescript from 'sucrase';
+import type { CompilerOptions as TsCompilerOptions } from 'typescript';
+import typescript from 'typescript';
 import { babelParse, MagicString } from 'vue/compiler-sfc';
 
 import type { CompilerOptions, TransformResult } from './types';
@@ -6,10 +7,20 @@ import type { CompilerOptions, TransformResult } from './types';
 import { FILENAME } from './constants';
 import { getDestPath } from './options';
 
-export const transformTS = (src: string) => {
-  return typescript.transform(src, {
-    transforms: ['typescript'],
-  }) as unknown as TransformResult;
+export type TsTransform = (src: string, options?: TsCompilerOptions, runtime?: typeof typescript) => TransformResult;
+
+const defaultTsCompilerOptions: TsCompilerOptions = {
+  module: typescript.ModuleKind.ESNext,
+  target: typescript.ScriptTarget.ESNext,
+  jsx: typescript.JsxEmit.Preserve,
+};
+
+export const tsTransform: TsTransform = (src, options, runtime) => {
+  const result = (runtime || typescript).transpileModule(
+    src, { compilerOptions: options || defaultTsCompilerOptions });
+  return {
+    code: result.outputText,
+  };
 };
 
 /**
