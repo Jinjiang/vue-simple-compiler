@@ -24,9 +24,17 @@ export const compile = (source: string, options?: CompilerOptions) => CompileRes
 type FileResolver = (filename: string) => string;
 
 type CompilerOptions = {
+  // COMMON OPTIONS:
+
+  // the root directory of the source code
+  // - by default, it's `@anonymous`
+  root?: string;
   // the filename of the source code
   // - by default, it's `anonymous.vue`
   filename?: string;
+
+  // ADVANCED OPTIONS:
+
   // custom file resolver
   // - by default, it's `(x) => x`
   resolver?: FileResolver;
@@ -38,6 +46,23 @@ type CompilerOptions = {
   autoResolveImports?: boolean;
   // whether to compile the code for production|development mode
   isProd?: boolean;
+  // whether to generate source map
+  hmr?: boolean;
+
+  // TYPESCRIPT OPTIONS:
+
+  tsCompilerOptions?: CompilerOptions from 'typescript';
+  tsRuntime?: typeof typescript;
+  tsTransform?: (
+    src: string,
+    options?: CompilerOptions from 'typescript',
+    runtime?: typeof typescript
+  ) => { code: string, sourceMap?: RawSourceMap | undefined };
+
+  // DANGEROUS SFC OPTIONS:
+
+  sfcScriptCompilerOptions?: Partial<SFCScriptCompileOptions from 'vue/compiler-sfc'>;
+  sfcTemplateCompilerOptions?: Partial<SFCTemplateCompileOptions from 'vue/compiler-sfc'>;
 };
 
 // Output
