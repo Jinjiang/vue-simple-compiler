@@ -19,15 +19,25 @@ export type CompileResultFile = {
   filename: string;
 } & TransformResult;
 
+export type CssFileParams = {
+  lang?: string;
+  scoped?: string;
+  module?: string;
+};
+
+export type CompileResultCssFile = CompileResultFile & CssFileParams;
+
 export type CompileResultExternalFile = {
   filename: string;
   query: Record<string, string>;
 };
 
+export type CompileResultExternalCssFile = CompileResultExternalFile & CssFileParams;
+
 export type CompileResult = {
   js: CompileResultFile;
-  css: CompileResultFile[];
+  css: CompileResultCssFile[];
   externalJs: CompileResultExternalFile[];
-  externalCss: CompileResultExternalFile[];
+  externalCss: CompileResultExternalCssFile[];
   errors: Error[];
 };
