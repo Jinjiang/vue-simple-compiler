@@ -489,7 +489,7 @@ it('works with external sass', async () => {
   expect(externalJs.length).toBe(0);
   expect(externalCss.length).toBe(1);
   expect(externalCss[0].filename).toBe('./external.scss');
-  expect(externalCss[0].query).toEqual({});
+  expect(externalCss[0].query).toEqual({ lang: 'scss' });
   expect(jsCode.includes(`import './external.scss'`)).toBe(true);
   const dir = join(testDistDir, 'external-sass');
   const modulePath = join(dir, destFilename);

@@ -1,8 +1,8 @@
 import type { SFCDescriptor } from 'vue/compiler-sfc';
 
 import type {
-  CompileResultExternalFile,
-  CompileResultFile,
+  CompileResultCssFile,
+  CompileResultExternalCssFile,
   Context,
 } from './types';
 
@@ -16,10 +16,10 @@ import {
 export const resolveStyles = (
   descriptor: SFCDescriptor,
   context: Context
-): { files?: CompileResultFile[]; importList?: string[]; errors?: Error[] } => {
+): { files?: CompileResultCssFile[]; importList?: string[]; errors?: Error[] } => {
   const errors: Error[] = [];
   const cssImportList: string[] = [];
-  const cssFileList: CompileResultFile[] = [];
+  const cssFileList: CompileResultCssFile[] = [];
   descriptor.styles.every((style, index) => {
     // validate lang
     if (
@@ -32,6 +32,9 @@ export const resolveStyles = (
       errors.push(new Error(`Unsupported style lang: ${style.lang}.`));
       return false;
     }
+
+    const scopedId = context.id.toString();
+    const moduleName = style.module ? (typeof style.module === 'string' ? style.module : '$style') : '';
 
     // validate ext
     // collect external css files
@@ -66,16 +69,21 @@ export const resolveStyles = (
         );
         return false;
       }
-      const externalCss: CompileResultExternalFile = {
+      const externalCss: CompileResultExternalCssFile = {
         filename: style.src,
         query: {},
       };
+      if (style.lang) {
+        externalCss.query.lang = style.lang;
+      }
       if (style.module) {
         externalCss.query.module = style.module.toString();
+        externalCss.module = moduleName;
       }
       if (style.scoped) {
         externalCss.query.scoped = style.scoped.toString();
-        externalCss.query.id = context.id.toString();
+        externalCss.query.id = scopedId;
+        externalCss.scoped = scopedId;
       }
       context.externalCssList.push(externalCss);
     }
@@ -89,17 +97,25 @@ export const resolveStyles = (
 
     // check css files
     if (!style.src) {
-      cssFileList.push({
+      const cssFile: CompileResultCssFile = {
         filename: cssFilePath,
         code: style.content,
         sourceMap: style.map,
-      });
+      };
+      if (style.lang) {
+        cssFile.lang = style.lang;
+      }
+      if (style.module) {
+        cssFile.module = moduleName;
+      }
+      if (style.scoped) {
+        cssFile.scoped = scopedId;
+      }
+      cssFileList.push(cssFile);
     }
 
     // add js code for css modules
     if (style.module) {
-      // e.g. `$style`
-      const moduleName = typeof style.module === 'string' ? style.module : '$style';
       if (!context.options?.autoImportCss) {
         // work around for testing purposes
         // e.g. `const style0 = new Proxy({}, { get: (_, key) => key })`
