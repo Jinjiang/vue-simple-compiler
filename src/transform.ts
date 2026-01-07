@@ -1,26 +1,15 @@
-import type { CompilerOptions as TsCompilerOptions } from 'typescript';
-import typescript from 'typescript';
 import { babelParse, MagicString } from 'vue/compiler-sfc';
+import tsBlankSpace from "ts-blank-space";
 
-import type { CompilerOptions, TransformResult } from './types';
+import type { CompilerOptions } from './types.js';
 
-import { FILENAME } from './constants';
-import { getDestPath } from './options';
+import { FILENAME } from './constants.js';
+import { getDestPath } from './options.js';
 
-export type TsTransform = (src: string, options?: TsCompilerOptions, runtime?: typeof typescript) => TransformResult;
+export type TsTransform = (src: string) => string;
 
-const defaultTsCompilerOptions: TsCompilerOptions = {
-  module: typescript.ModuleKind.ESNext,
-  target: typescript.ScriptTarget.ESNext,
-  jsx: typescript.JsxEmit.Preserve,
-};
-
-export const tsTransform: TsTransform = (src, options, runtime) => {
-  const result = (runtime || typescript).transpileModule(
-    src, { compilerOptions: options || defaultTsCompilerOptions });
-  return {
-    code: result.outputText,
-  };
+export const tsTransform: TsTransform = (src) => {
+  return tsBlankSpace(src);
 };
 
 /**
@@ -40,7 +29,7 @@ export const resolveImports = (
 ): string => {
   const s = new MagicString(code);
 
-  const resolver = options?.resolver ?? ((x) => x);
+  const resolver = options?.resolver ?? ((x: string) => x);
   const ast = babelParse(code, {
     sourceFilename: options?.filename ?? FILENAME,
     sourceType: 'module',

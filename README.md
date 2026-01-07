@@ -48,16 +48,18 @@ type CompilerOptions = {
   isProd?: boolean;
   // whether to generate source map
   hmr?: boolean;
+  // custom file system access, useful in a testing environment
+  fs?: {
+    fileExists(file: string): boolean;
+    readFile(file: string): string | undefined;
+    realpath?(file: string): string;
+  };
 
   // TYPESCRIPT OPTIONS:
 
   tsCompilerOptions?: CompilerOptions from 'typescript';
   tsRuntime?: typeof typescript;
-  tsTransform?: (
-    src: string,
-    options?: CompilerOptions from 'typescript',
-    runtime?: typeof typescript
-  ) => { code: string, sourceMap?: RawSourceMap | undefined };
+  tsTransform?: (src: string) => string;
 
   // DANGEROUS SFC OPTIONS:
 

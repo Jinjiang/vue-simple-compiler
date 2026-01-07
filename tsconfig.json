@@ -1,16 +1,15 @@
 {
   "compilerOptions": {
-    "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
     "outDir": "dist",
     "target": "esnext",
-    "module": "esnext",
-    "moduleResolution": "node",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": ["esnext", "dom"],
+
     "allowJs": false,
     "strict": true,
     "esModuleInterop": true,
-    "lib": ["esnext", "dom"],
-    "rootDir": "."
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["src", "test"]
 }

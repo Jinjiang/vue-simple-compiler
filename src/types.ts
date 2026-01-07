@@ -1,7 +1,7 @@
-import type { FileInfo, RawSourceMap } from './map';
-import type { FileResolver, CompilerOptions } from './options';
-import type { SFCFeatures, Context } from './context';
-import type { TsTransform } from './transform';
+import type { FileInfo, RawSourceMap } from './map.js';
+import type { FileResolver, CompilerOptions } from './options.js';
+import type { SFCFeatures, Context } from './context.js';
+import type { TsTransform } from './transform.js';
 
 export type {
   FileInfo,

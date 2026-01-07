@@ -1,14 +1,14 @@
 import type { RawSourceMap } from 'source-map';
 import { parse } from 'vue/compiler-sfc';
 
-import type { CompilerOptions, CompileResult, Context } from './types';
-import { COMP_ID } from './constants';
-import { resolveImports } from './transform';
-import { bundleSourceMap } from './map';
-import { createContext, resolveFeatures } from './context';
-import { resolveScript } from './script';
-import { resolveTemplate } from './template';
-import { resolveStyles } from './style';
+import type { CompilerOptions, CompileResult, Context } from './types.js';
+import { COMP_ID } from './constants.js';
+import { resolveImports } from './transform.js';
+import { bundleSourceMap } from './map.js';
+import { createContext, resolveFeatures } from './context.js';
+import { resolveScript } from './script.js';
+import { resolveTemplate } from './template.js';
+import { resolveStyles } from './style.js';
 
 const getErrorResult = (
   errors: (string | Error)[],
@@ -38,7 +38,7 @@ export const compile = (
 
   // get the code structure
   const { descriptor, errors: mainCompilerErrors } = parse(source, {
-    filename: context.filename,
+    filename: context.fullpath,
   });
   if (mainCompilerErrors.length) {
     return getErrorResult(mainCompilerErrors, context.destFilename);

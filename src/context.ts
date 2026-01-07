@@ -4,10 +4,10 @@ import { join } from 'path';
 // @ts-ignore
 import hashId from 'hash-sum';
 
-import type { CompileResultExternalFile, CompilerOptions } from './types';
+import type { CompileResultExternalFile, CompilerOptions } from './types.js';
 
-import { FILENAME, ROOT, ID } from './constants';
-import { getDestPath } from './options';
+import { FILENAME, ROOT, ID } from './constants.js';
+import { getDestPath } from './options.js';
 
 export type Context = {
   isProd: boolean;
@@ -75,9 +75,10 @@ export const createContext = (
   const filename = options?.filename ?? FILENAME;
   const fullpath = join(root, filename);
   const destFilename = getDestPath(options?.filename ?? FILENAME);
-  const id = options?.filename ? hashId(options.filename + source) : ID;
+  const isProd = options?.isProd ?? false;
+  const id = options?.filename ? hashId(isProd ? options.filename + source : options.filename) : ID;
   const context: Context = {
-    isProd: options?.isProd ?? false,
+    isProd,
     hmr: options?.hmr ?? false,
     root,
     filename,

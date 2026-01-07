@@ -1,12 +1,16 @@
-import { join, resolve } from 'path';
-import { ensureDirSync, writeFileSync, rmSync, existsSync } from 'fs-extra';
+import { fileURLToPath } from 'url';
+import { join, resolve, dirname } from 'path';
+import { ensureDirSync, writeFileSync, rmSync, existsSync, readFileSync, realpathSync } from 'fs-extra';
 import { beforeEach, expect, it } from "vitest";
 import { defineComponent } from 'vue';
 import { render } from '@testing-library/vue';
 import findRoot from 'find-root';
+import * as sucrase from 'sucrase';
 
-import { compile } from '../src/compiler';
-import * as fixtures from './fixtures';
+import { compile } from '../src/compiler.js';
+import * as fixtures from './fixtures.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // TODO:
 // features
@@ -17,7 +21,8 @@ import * as fixtures from './fixtures';
 // - import vue files without extension name
 // - import js/css files with the same name
 
-const testDistDir = './test/dist';
+const testFixturesDir = join(__dirname, './fixtures');
+const testDistDir = join(__dirname, 'dist');
 
 beforeEach(() => {
   document.body.innerHTML = '';
@@ -160,6 +165,34 @@ it('works with typescript', async () => {
     js: { filename: destFilename, code: jsCode },
     css,
   } = compile(fixtures.ts, { filename: 'ts.vue' });
+  expect(destFilename).toBe('ts.vue.js');
+  expect(css.length).toBe(0);
+  const dir = join(testDistDir, 'ts');
+  const modulePath = join(dir, destFilename);
+  if (existsSync(dir)) {
+    rmSync(dir, { recursive: true });
+  }
+  ensureDirSync(dir);
+  writeFileSync(modulePath, jsCode);
+  const HelloWorld = (await import(modulePath)).default;
+  const result = render(defineComponent(HelloWorld));
+  expect(result.html().trim().replace(/\n/g, '')).toBe(
+    '<h1>Hello from Component A!</h1>'
+  );
+});
+
+it('works with typescript by custom ts transform', async () => {
+  const {
+    js: { filename: destFilename, code: jsCode },
+    css,
+  } = compile(fixtures.ts, {
+    filename: 'ts.vue',
+    tsTransform: (src) => {
+      return sucrase.transform(src, {
+        transforms: ['typescript'],
+      }).code;
+    },
+  });
   expect(destFilename).toBe('ts.vue.js');
   expect(css.length).toBe(0);
   const dir = join(testDistDir, 'ts');
@@ -720,4 +753,20 @@ it('works with custom compiler options', async () => {
   expect(externalCss.length).toBe(0);
   // skip transforming assets into imports
   expect(jsCode.includes(`src: "./assets/logo.svg"`)).toBe(true);
-})
+});
+
+it('works with imported props type', async () => {
+  const inputCode = readFileSync(join(testFixturesDir, 'foo.vue'), 'utf-8');
+  const {
+    errors,
+  } = compile(inputCode, {
+    filename: 'foo.vue',
+    root: testFixturesDir,
+    fs: {
+      fileExists: (path) => existsSync(path),
+      readFile: (path) => readFileSync(path, 'utf-8'),
+      realpath: (path) => realpathSync(path),
+    }
+  });
+  expect(errors.length).toBe(0);
+});

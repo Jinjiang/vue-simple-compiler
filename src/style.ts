@@ -4,14 +4,14 @@ import type {
   CompileResultCssFile,
   CompileResultExternalCssFile,
   Context,
-} from './types';
+} from './types.js';
 
 import {
   checkExtensionName,
   genCssImport,
   getCssPath,
   getExternalCssPath,
-} from './options';
+} from './options.js';
 
 export const resolveStyles = (
   descriptor: SFCDescriptor,
@@ -34,7 +34,8 @@ export const resolveStyles = (
     }
 
     const scopedId = context.id.toString();
-    const moduleName = style.module ? (typeof style.module === 'string' ? style.module : '$style') : '';
+    const moduleNameValue = typeof style.module === 'string' ? style.module : '$style';
+    const moduleName = style.module ? moduleNameValue : '';
 
     // validate ext
     // collect external css files
