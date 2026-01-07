@@ -20,6 +20,11 @@ export type CompilerOptions = {
   tsTransform?: TsTransform;
   sfcScriptCompilerOptions?: Partial<SFCScriptCompileOptions>;
   sfcTemplateCompilerOptions?: Partial<SFCTemplateCompileOptions>;
+  fs?: {
+    fileExists(file: string): boolean;
+    readFile(file: string): string | undefined;
+    realpath?(file: string): string;
+  };
 };
 
 // e.g. filename.vue__0.css

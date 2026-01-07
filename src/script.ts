@@ -9,7 +9,6 @@ import { compileScript, rewriteDefault } from 'vue/compiler-sfc';
 import type { TransformResult, Context } from './types.js';
 
 import { COMP_ID } from './constants.js';
-import { chainSourceMap } from './map.js';
 import { checkExtensionName } from './options.js';
 import { tsTransform } from './transform.js';
 
@@ -81,6 +80,7 @@ export const resolveScript = (
           },
         },
         isProd: context.isProd,
+        fs: context.options.fs,
       });
     } catch (error) {
       return { errors: [error as Error] };
@@ -91,18 +91,12 @@ export const resolveScript = (
       try {
         const transform = context.options.tsTransform || tsTransform;
         const transformed = transform(
-          scriptBlock.content,
-          context.options.tsCompilerOptions,
-          context.options.tsRuntime
-        );
-        const sourceMap = chainSourceMap(
-          scriptBlock.map,
-          transformed.sourceMap
+          scriptBlock.content
         );
         return {
           result: {
-            code: rewriteDefault(transformed.code, COMP_ID, expressionPlugins),
-            sourceMap,
+            code: rewriteDefault(transformed, COMP_ID, expressionPlugins),
+            sourceMap: scriptBlock.map,
           },
         };
       } catch (error) {

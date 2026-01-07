@@ -1,5 +1,6 @@
-import { join, resolve } from 'path';
-import { ensureDirSync, writeFileSync, rmSync, existsSync } from 'fs-extra';
+import { fileURLToPath } from 'url';
+import { join, resolve, dirname } from 'path';
+import { ensureDirSync, writeFileSync, rmSync, existsSync, readFileSync, realpathSync } from 'fs-extra';
 import { beforeEach, expect, it } from "vitest";
 import { defineComponent } from 'vue';
 import { render } from '@testing-library/vue';
@@ -7,6 +8,8 @@ import findRoot from 'find-root';
 
 import { compile } from '../src/compiler.js';
 import * as fixtures from './fixtures.js';
+    
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // TODO:
 // features
@@ -721,3 +724,20 @@ it('works with custom compiler options', async () => {
   // skip transforming assets into imports
   expect(jsCode.includes(`src: "./assets/logo.svg"`)).toBe(true);
 })
+
+it('works with imported props type', async () => {
+  const inputCode = readFileSync(join(__dirname, './fixtures/foo.vue'), 'utf-8');
+  const root = join(__dirname, './fixtures');
+  const {
+    errors,
+  } = compile(inputCode, {
+    filename: 'foo.vue',
+    root,
+    fs: {
+      fileExists: (path) => existsSync(path),
+      readFile: (path) => readFileSync(path, 'utf-8'),
+      realpath: (path) => realpathSync(path),
+    }
+  });
+  expect(errors.length).toBe(0);
+});

@@ -38,7 +38,7 @@ export const compile = (
 
   // get the code structure
   const { descriptor, errors: mainCompilerErrors } = parse(source, {
-    filename: context.filename,
+    filename: context.fullpath,
   });
   if (mainCompilerErrors.length) {
     return getErrorResult(mainCompilerErrors, context.destFilename);
