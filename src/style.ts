@@ -4,14 +4,14 @@ import type {
   CompileResultCssFile,
   CompileResultExternalCssFile,
   Context,
-} from './types';
+} from './types.js';
 
 import {
   checkExtensionName,
   genCssImport,
   getCssPath,
   getExternalCssPath,
-} from './options';
+} from './options.js';
 
 export const resolveStyles = (
   descriptor: SFCDescriptor,

@@ -5,8 +5,8 @@ import { defineComponent } from 'vue';
 import { render } from '@testing-library/vue';
 import findRoot from 'find-root';
 
-import { compile } from '../src/compiler';
-import * as fixtures from './fixtures';
+import { compile } from '../src/compiler.js';
+import * as fixtures from './fixtures.js';
 
 // TODO:
 // features

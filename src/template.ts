@@ -2,9 +2,9 @@ import type { SFCDescriptor } from 'vue/compiler-sfc';
 
 import { compileTemplate } from 'vue/compiler-sfc';
 
-import type { Context, TransformResult } from './types';
+import type { Context, TransformResult } from './types.js';
 
-import { COMP_ID } from './constants';
+import { COMP_ID } from './constants.js';
 
 export const resolveTemplate = (
   descriptor: SFCDescriptor,

@@ -6,12 +6,12 @@ import type {
 
 import { compileScript, rewriteDefault } from 'vue/compiler-sfc';
 
-import type { TransformResult, Context } from './types';
+import type { TransformResult, Context } from './types.js';
 
-import { COMP_ID } from './constants';
-import { chainSourceMap } from './map';
-import { checkExtensionName } from './options';
-import { tsTransform } from './transform';
+import { COMP_ID } from './constants.js';
+import { chainSourceMap } from './map.js';
+import { checkExtensionName } from './options.js';
+import { tsTransform } from './transform.js';
 
 export const resolveScript = (
   descriptor: SFCDescriptor,

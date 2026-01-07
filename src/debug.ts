@@ -7,7 +7,7 @@ import type { RawSourceMap } from 'source-map';
 import fs from 'fs';
 import path from 'path';
 import { SourceMapConsumer } from 'source-map';
-import { Context } from './types';
+import { Context } from './types.js';
 
 export const debugMap = (map: RawSourceMap | undefined) => {
   if (!map) {

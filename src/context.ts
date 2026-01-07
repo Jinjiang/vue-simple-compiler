@@ -4,10 +4,10 @@ import { join } from 'path';
 // @ts-ignore
 import hashId from 'hash-sum';
 
-import type { CompileResultExternalFile, CompilerOptions } from './types';
+import type { CompileResultExternalFile, CompilerOptions } from './types.js';
 
-import { FILENAME, ROOT, ID } from './constants';
-import { getDestPath } from './options';
+import { FILENAME, ROOT, ID } from './constants.js';
+import { getDestPath } from './options.js';
 
 export type Context = {
   isProd: boolean;

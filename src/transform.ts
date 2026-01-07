@@ -2,10 +2,10 @@ import type { CompilerOptions as TsCompilerOptions } from 'typescript';
 import typescript from 'typescript';
 import { babelParse, MagicString } from 'vue/compiler-sfc';
 
-import type { CompilerOptions, TransformResult } from './types';
+import type { CompilerOptions, TransformResult } from './types.js';
 
-import { FILENAME } from './constants';
-import { getDestPath } from './options';
+import { FILENAME } from './constants.js';
+import { getDestPath } from './options.js';
 
 export type TsTransform = (src: string, options?: TsCompilerOptions, runtime?: typeof typescript) => TransformResult;
 
@@ -40,7 +40,7 @@ export const resolveImports = (
 ): string => {
   const s = new MagicString(code);
 
-  const resolver = options?.resolver ?? ((x) => x);
+  const resolver = options?.resolver ?? ((x: string) => x);
   const ast = babelParse(code, {
     sourceFilename: options?.filename ?? FILENAME,
     sourceType: 'module',
