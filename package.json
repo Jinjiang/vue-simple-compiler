@@ -32,7 +32,8 @@
     "dev": "vitest dev",
     "dev:ui": "vitest dev --ui",
     "build": "tsc --project tsconfig.build.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublish": "pnpm run build"
   },
   "dependencies": {
     "hash-sum": "^2.0.0",
