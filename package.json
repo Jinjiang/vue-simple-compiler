@@ -1,6 +1,6 @@
 {
   "name": "vue-simple-compiler",
-  "version": "0.0.7",
+  "version": "0.1.0",
   "description": "A lib to compile Vue Single-File Component into plain JavaScript & CSS.",
   "keywords": [
     "compiler",
