@@ -1,7 +1,7 @@
 import { babelParse, MagicString } from 'vue/compiler-sfc';
 import tsBlankSpace from "ts-blank-space";
 
-import type { CompilerOptions, TransformResult } from './types.js';
+import type { CompilerOptions } from './types.js';
 
 import { FILENAME } from './constants.js';
 import { getDestPath } from './options.js';
