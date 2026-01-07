@@ -34,7 +34,8 @@ export const resolveStyles = (
     }
 
     const scopedId = context.id.toString();
-    const moduleName = style.module ? (typeof style.module === 'string' ? style.module : '$style') : '';
+    const moduleNameValue = typeof style.module === 'string' ? style.module : '$style';
+    const moduleName = style.module ? moduleNameValue : '';
 
     // validate ext
     // collect external css files

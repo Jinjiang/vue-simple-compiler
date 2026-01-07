@@ -5,10 +5,11 @@ import { beforeEach, expect, it } from "vitest";
 import { defineComponent } from 'vue';
 import { render } from '@testing-library/vue';
 import findRoot from 'find-root';
+import * as sucrase from 'sucrase';
 
 import { compile } from '../src/compiler.js';
 import * as fixtures from './fixtures.js';
-    
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // TODO:
@@ -20,6 +21,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // - import vue files without extension name
 // - import js/css files with the same name
 
+const testFixturesDir = join(__dirname, './fixtures');
 const testDistDir = join(__dirname, 'dist');
 
 beforeEach(() => {
@@ -163,6 +165,34 @@ it('works with typescript', async () => {
     js: { filename: destFilename, code: jsCode },
     css,
   } = compile(fixtures.ts, { filename: 'ts.vue' });
+  expect(destFilename).toBe('ts.vue.js');
+  expect(css.length).toBe(0);
+  const dir = join(testDistDir, 'ts');
+  const modulePath = join(dir, destFilename);
+  if (existsSync(dir)) {
+    rmSync(dir, { recursive: true });
+  }
+  ensureDirSync(dir);
+  writeFileSync(modulePath, jsCode);
+  const HelloWorld = (await import(modulePath)).default;
+  const result = render(defineComponent(HelloWorld));
+  expect(result.html().trim().replace(/\n/g, '')).toBe(
+    '<h1>Hello from Component A!</h1>'
+  );
+});
+
+it('works with typescript by custom ts transform', async () => {
+  const {
+    js: { filename: destFilename, code: jsCode },
+    css,
+  } = compile(fixtures.ts, {
+    filename: 'ts.vue',
+    tsTransform: (src) => {
+      return sucrase.transform(src, {
+        transforms: ['typescript'],
+      }).code;
+    },
+  });
   expect(destFilename).toBe('ts.vue.js');
   expect(css.length).toBe(0);
   const dir = join(testDistDir, 'ts');
@@ -723,16 +753,15 @@ it('works with custom compiler options', async () => {
   expect(externalCss.length).toBe(0);
   // skip transforming assets into imports
   expect(jsCode.includes(`src: "./assets/logo.svg"`)).toBe(true);
-})
+});
 
 it('works with imported props type', async () => {
-  const inputCode = readFileSync(join(__dirname, './fixtures/foo.vue'), 'utf-8');
-  const root = join(__dirname, './fixtures');
+  const inputCode = readFileSync(join(testFixturesDir, 'foo.vue'), 'utf-8');
   const {
     errors,
   } = compile(inputCode, {
     filename: 'foo.vue',
-    root,
+    root: testFixturesDir,
     fs: {
       fileExists: (path) => existsSync(path),
       readFile: (path) => readFileSync(path, 'utf-8'),
