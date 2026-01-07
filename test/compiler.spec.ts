@@ -20,7 +20,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // - import vue files without extension name
 // - import js/css files with the same name
 
-const testDistDir = './test/dist';
+const testDistDir = join(__dirname, 'dist');
 
 beforeEach(() => {
   document.body.innerHTML = '';

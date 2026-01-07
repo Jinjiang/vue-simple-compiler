@@ -21,8 +21,8 @@ importers:
         specifier: ^1.62.1
         version: 1.97.2
       source-map:
-        specifier: ^0.7.6
-        version: 0.7.6
+        specifier: ^0.6.1
+        version: 0.6.1
       ts-blank-space:
         specifier: ^0.6.2
         version: 0.6.2
@@ -1336,10 +1336,6 @@ packages:
   source-map@0.6.1:
     resolution: {integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==}
     engines: {node: '>=0.10.0'}
-
-  source-map@0.7.6:
-    resolution: {integrity: sha512-i5uvt8C3ikiWeNZSVZNWcfZPItFQOsYTUAOkcUPGd8DqDy1uOUikjt5dG+uRlwyvR108Fb9DOd4GvXfT0N2/uQ==}
-    engines: {node: '>= 12'}
 
   stackback@0.0.2:
     resolution: {integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==}
@@ -2833,10 +2829,7 @@ snapshots:
 
   source-map-js@1.2.1: {}
 
-  source-map@0.6.1:
-    optional: true
-
-  source-map@0.7.6: {}
+  source-map@0.6.1: {}
 
   stackback@0.0.2: {}
 

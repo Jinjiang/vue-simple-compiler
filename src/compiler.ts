@@ -83,7 +83,7 @@ export const compile = (
     : scriptResult.code;
 
   const initialSourceMap: RawSourceMap = {
-    version: 3,
+    version: '3',
     file: context.destFilename,
     sources: [context.filename],
     names: [],
