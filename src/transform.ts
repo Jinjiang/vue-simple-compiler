@@ -1,4 +1,5 @@
-import { babelParse, MagicString } from 'vue/compiler-sfc';
+import { babelParse } from 'vue/compiler-sfc';
+import MagicString from 'magic-string';
 import tsBlankSpace from "ts-blank-space";
 
 import type { CompilerOptions } from './types.js';

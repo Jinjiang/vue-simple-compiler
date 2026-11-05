@@ -164,6 +164,9 @@ export const bundleSourceMap = (list: FileInfo[]): FileInfo => {
       });
       const consumer = new SourceMapConsumer(block.sourceMap);
       consumer.eachMapping((m) => {
+        if (m.originalLine == null) {
+          return;
+        }
         generator.addMapping({
           generated: {
             line: m.generatedLine + lineOffset,
@@ -214,6 +217,9 @@ export const shiftSourceMap = (
   const sourceFileMap = new Map<string, string>();
 
   consumer.eachMapping((m) => {
+    if (m.originalLine == null) {
+      return;
+    }
     const source = (newFileMap || {})[m.source] || {
       name: m.source,
       code: consumer.sourceContentFor(m.source) || '',
