@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "hash-sum": "^2.0.0",
+    "magic-string": "^0.30.17",
     "source-map": "^0.6.1",
     "ts-blank-space": "^0.6.2"
   },
