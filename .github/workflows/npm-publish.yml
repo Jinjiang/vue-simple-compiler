@@ -24,4 +24,6 @@ jobs:
           package-manager-cache: false
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
-      - run: npm publish
+      - run: npm install -g npm@^11.15.0
+      - run: npm --version
+      - run: npm stage publish
