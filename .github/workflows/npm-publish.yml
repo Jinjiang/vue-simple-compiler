@@ -6,6 +6,7 @@ on:
       - "*"
 
 permissions:
+  contents: read
   id-token: write
 
 jobs:
@@ -18,9 +19,9 @@ jobs:
           version: 9
       - uses: actions/setup-node@v7
         with:
-          node-version: 20.x
-          registry-url: https://registry.npmjs.org/
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
       - run: pnpm install --frozen-lockfile
-      - run: pnpm publish --no-git-checks --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+      - run: pnpm run build
+      - run: npm publish
